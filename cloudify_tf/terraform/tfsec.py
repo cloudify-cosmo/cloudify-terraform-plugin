@@ -180,6 +180,13 @@ class TFSec(TFTool):
                 basic_commands.extend(command_extension)
 
             command = self.merged_args(self.flags, basic_commands)
+            self.logger.debug('Swapping "var-file" with "tfvars-file", '
+                              'for backward compatibility across '
+                              'different tf-sec versions. '
+                              'If you think this is a mistake, '
+                              'please contact Cloudify support.')
+            var_index = command.index('--var-file')
+            command[var_index] = '--tfvars-file'
             command.insert(0, self.executable_path)
             return self.execute(command, self.terraform_root_module, self.env,
                                 return_output=False)
