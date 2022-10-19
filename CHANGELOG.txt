@@ -1,3 +1,5 @@
+0.19.10:
+ - TF error messages are unhelpful if Terraform binary does not exist
 0.19.9:
  - Fix the tfvars flag for older tfsec versions
 0.19.8:

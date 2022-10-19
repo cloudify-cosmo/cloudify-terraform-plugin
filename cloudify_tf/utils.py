@@ -258,19 +258,26 @@ def is_using_existing(target=True):
 
 
 def get_binary_location_from_rel():
-    tf_rel = find_terraform_node_from_rel()
-    terraform_config = tf_rel.target.node.properties.get(
-        'terraform_config', {})
-    candidate_a = terraform_config.get('executable_path')
     candidate_b = get_executable_path()
     if candidate_b and os.path.isfile(candidate_b):
+        ctx.logger.debug(
+            'Executable path from node {}'.format(candidate_b))
         return candidate_b
-    if candidate_a and os.path.isfile(candidate_a):
-        return candidate_a
+    tf_rel = find_terraform_node_from_rel()
+    if tf_rel:
+        terraform_config = tf_rel.target.node.properties.get(
+            'terraform_config', {})
+        candidate_a = terraform_config.get('executable_path')
+        if candidate_a and os.path.isfile(candidate_a):
+            ctx.logger.debug(
+                'Executable path from rel {}'.format(candidate_a))
+            return candidate_a
     raise NonRecoverableError(
-        "Terraform's executable not found in {0} or {1}. Please set the "
-        "'executable_path' property accordingly.".format(
-            candidate_b, candidate_a))
+        "Terraform's executable not found from relationship "
+        "'cloudify.terraform.relationships.run_on_host' to type "
+        "'cloudify.nodes.terraform' or by setting the value in "
+        "'terraform_config'. Please set the 'executable_path' property "
+        "accordingly.")
 
 
 def find_terraform_node_from_rel():
