@@ -160,16 +160,40 @@ class Terraform(CliTool):
                 self._backend.get('name'), self._backend.get('options', {}))
 
     @property
+    def insecure_backend(self):
+        if self._backend:
+            insecure_backend = utils.convert_secrets(self._backend)
+            return utils.create_backend_string(
+                insecure_backend.get('name'),
+                insecure_backend.get('options', {}))
+
+    @property
     def required_providers(self):
         if self._required_providers:
             return utils.create_required_providers_string(
                 self._required_providers.get('required_providers'))
 
     @property
+    def insecure_required_providers(self):
+        if self._required_providers:
+            insecure_required_providers = utils.convert_secrets(
+                self._required_providers)
+            return utils.create_required_providers_string(
+                insecure_required_providers.get('required_providers'))
+
+    @property
     def provider(self):
         if self._provider:
             return utils.create_provider_string(
                 self._provider.get('providers', {}))
+
+    @property
+    def insecure_provider(self):
+        if self._provider:
+            insecure_provider = utils.convert_secrets(
+                self._provider)
+            return utils.create_provider_string(
+                insecure_provider.get('providers', {}))
 
     @staticmethod
     def convert_bools_in_env(env):
@@ -244,20 +268,21 @@ class Terraform(CliTool):
         return cmd
 
     def put_backend(self):
-        utils.dump_file(self.backend, self.root_module, 'backend.tf')
+        utils.dump_file(self.insecure_backend,
+                        self.root_module,
+                        'backend.tf')
 
     def put_required_providers(self):
-        utils.dump_file(self.required_providers,
+        utils.dump_file(self.insecure_required_providers,
                         self.root_module,
                         self._required_providers.get(
                             'filename',
                             'versions.tf.json'))
 
     def put_provider(self):
-        if self.provider:
-            utils.dump_file(self.provider,
-                            self.root_module,
-                            self._provider.get('filename', 'provider.tf'))
+        utils.dump_file(self.insecure_provider,
+                        self.root_module,
+                        self._provider.get('filename', 'provider.tf'))
 
     @contextmanager
     def runtime_file(self, command):
