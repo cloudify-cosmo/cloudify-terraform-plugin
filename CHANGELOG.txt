@@ -1,3 +1,5 @@
+0.19.12:
+ - Bump cloudify_common_sdk version to latest stable.
 0.19.11:
  - Handle providers and backend concat with secrets [ depends on sdk change as well ]
 0.19.10:

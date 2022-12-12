@@ -8,4 +8,4 @@ flake8
 # For integration tests
 pytest==4.6.3
 pyyaml>=4.2b1
-cloudify-utilities-plugins-sdk>=0.0.89
+cloudify-utilities-plugins-sdk>=0.0.93
