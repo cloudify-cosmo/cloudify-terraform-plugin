@@ -623,6 +623,8 @@ class Terraform(CliTool):
                         api_key_param, ctx.deployment.id)
             kwargs['infracost_config']['api_key'] = result
 
+        if 'tf' in kwargs:
+            kwargs.pop('tf', None)
         setup_config_tf(ctx, tf, **kwargs)
         return tf
 
