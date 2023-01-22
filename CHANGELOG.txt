@@ -1,3 +1,6 @@
+0.19.14:
+ - Fix check status and check drift
+ - Backend formatting fix.
 0.19.13:
  - De-Duplicate tf passed in kwargs.
 0.19.12:

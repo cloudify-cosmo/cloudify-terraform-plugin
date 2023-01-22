@@ -12,28 +12,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import os
 import sys
 
 from cloudify.decorators import operation
 from cloudify import ctx as ctx_from_imports
-from cloudify.exceptions import NonRecoverableError, RecoverableError
 from cloudify.utils import exception_to_error_cause
-from cloudify_common_sdk.utils import (get_node_instance_dir,
-                                       install_binary,
-                                       update_dict_values)
+from cloudify.exceptions import NonRecoverableError, RecoverableError
+from cloudify_common_sdk.utils import (
+    install_binary,
+    update_dict_values,
+    get_node_instance_dir)
 
 from . import utils
 from ._compat import mkdir_p
-from .constants import IS_DRIFTED, DRIFTS
+from .constants import IS_DRIFTED
 from .decorators import (
     with_terraform,
     skip_if_existing)
-from .terraform.tools_base import TFToolException
+from .terraform.opa import Opa
 from .terraform.tfsec import TFSec
 from .terraform.tflint import TFLint
 from .terraform.terratag import Terratag
 from .terraform.infracost import Infracost
+from .terraform.tools_base import TFToolException
 
 
 @operation
@@ -68,6 +71,38 @@ def tflint(ctx, tf, tflint_config, **_):
     tf.check_tflint()
     ctx.instance.runtime_properties['tflint_config'] = \
         tf.tflint.export_config()
+
+
+@operation
+@with_terraform
+def evaluate_opa_policy(ctx, tf, opa_config, decision, **_):
+
+    # Ensure Terraform is initialized and obtain a current Terraform plan
+    tf.init()
+    tf.plan_and_show()
+
+    # Setup the OPA config and store in the runtime props
+    original_opa_config = ctx.instance.runtime_properties.get(
+        'opa_config') or ctx.node.properties.get('opa_config')
+    new_opa_config = update_dict_values(
+        original_opa_config, opa_config)
+    tf.opa = Opa.from_ctx(ctx, new_opa_config)
+    ctx.instance.runtime_properties['opa_config'] = \
+        tf.opa.export_config()
+
+    # Download and extract OPA policy bundles to the TF module's subdirectory
+    utils.get_opa_bundles()
+
+    # Evaluate the OPA decision using the policies and store in runtime props
+    result, json_result = tf.check_opa(decision=decision)
+    ctx.instance.runtime_properties['opa_evaluation_result'] = result
+    ctx.instance.runtime_properties['opa_evaluation_result_json'] = json_result
+
+    # Fail irrecoverably if the policy evaluation failed
+    if not result:
+        raise NonRecoverableError(
+            "Policy evaluation failed. See ""opa_evaluation_result_json"
+            "runtime property for full details.")
 
 
 @operation
@@ -282,17 +317,15 @@ def check_drift(ctx, tf, **_):
         tf.root_module = utils.update_terraform_source(
             from_inst.get('source'),
             from_inst.get('source_path'))
-
-    _state_pull(tf)
-    if not ctx.instance.runtime_properties.get(IS_DRIFTED, False):
-        ctx.logger.info(
+    _state_pull(tf, update_runtime_props=False)
+    if ctx.instance.runtime_properties.get(IS_DRIFTED, False):
+        ctx.abort_operation(
+            'The cloudify.nodes.terraform.Module node template {} '
+            'has drifts.'.format(ctx.instance.id))
+    else:
+        ctx.logger.error(
             'The cloudify.nodes.terraform.Module node instance {} '
             'has no drifts.'.format(ctx.instance.id))
-        return
-    ctx.logger.error(
-        'The cloudify.nodes.terraform.Module node instance {} '
-        'has drifts.'.format(ctx.instance.id))
-    return ctx.instance.runtime_properties[DRIFTS]
 
 
 @operation
@@ -308,7 +341,7 @@ def state_pull(ctx, tf, **_):
     _state_pull(tf)
 
 
-def _state_pull(tf):
+def _state_pull(tf, update_runtime_props=True):
     try:
         tf.refresh()
         tf_state = tf.state_pull()
@@ -320,7 +353,8 @@ def _state_pull(tf):
         raise RecoverableError(
             "Failed pulling state",
             causes=[exception_to_error_cause(ex, tb)])
-    utils.refresh_resources_properties(tf_state, tf_output)
+    utils.refresh_resources_properties(
+        tf_state, tf_output, update_runtime_props=update_runtime_props)
     utils.refresh_resources_drifts_properties(plan_json)
 
 

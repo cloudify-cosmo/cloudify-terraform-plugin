@@ -48,10 +48,6 @@ setup(
         "cloudify-common>=4.5.5",
         "networkx==1.9.1",
         "requests>=2.7.0,<3.0",
-        "cloudify-utilities-plugins-sdk>=0.0.93",
-    ],
-    test_requires=[
-        "cloudify-common>=4.5.5",
-        "nose==1.3.7",
-    ]  # noqa
+        "cloudify-utilities-plugins-sdk>=0.0.101",
+    ]
 )

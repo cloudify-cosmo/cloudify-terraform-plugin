@@ -1,3 +1,4 @@
+nose
 coverage==3.7.1
 nose-cov
 testfixtures

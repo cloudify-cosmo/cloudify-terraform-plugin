@@ -33,8 +33,8 @@ CONFIG_RESULT = """rule "terraform_unused_declarations" {
 }
 plugin "foo" {
    enabled = true
-   version = 0.1.0
-   source = github.com/org/tflint-ruleset-foo
+   version = "0.1.0"
+   source = "github.com/org/tflint-ruleset-foo"
    signing_key = <<-KEY
    -----BEGIN PGP PUBLIC KEY BLOCK-----
 
@@ -52,8 +52,8 @@ config {
       terraform-aws-modules/security-group/aws = true
 
    }
-   varfile = example1.tfvarsexample2.tfvars
-   variables = foo=barbar=["baz"]
+   varfile = "[example1.tfvars, example2.tfvars]"
+   variables = "[foo=bar, bar=[baz]]"
 
 }
 """
@@ -114,7 +114,7 @@ def tflint_params(get_tf_tools_params):  # noqa
                 'option_value': {
                     'variables': [
                         "foo=bar",
-                        "bar=[\"baz\"]"
+                        "bar=[baz]"
                     ]
                 }
             },

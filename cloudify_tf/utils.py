@@ -79,13 +79,21 @@ from ._compat import text_type, StringIO, mkdir_p
 
 
 def convert_secrets(data):
-    data = deepcopy(data)
-    for k, v in list(data.items()):
-        if isinstance(v, CommonSDKSecret):
-            data[k] = v.secret
-        else:
-            data[k] = v
-    return data
+    def recurse(x):
+        if isinstance(x, CommonSDKSecret):
+            return x.secret
+        elif isinstance(x, dict):
+            new_dict = {}
+            for k, v in x.items():
+                new_dict[k] = recurse(v)
+            return new_dict
+        elif isinstance(x, list):
+            new_list = []
+            for i in x:
+                new_list.append(recurse(i))
+            return new_list
+        return x
+    return recurse(deepcopy(data))
 
 
 def exclude_file(dirname, filename, excluded_files):
@@ -294,6 +302,11 @@ def get_resource_config(target=False, force=None):
     return get_stored_property(ctx, 'resource_config', target, force)
 
 
+def get_repo_url():
+    rc = get_resource_config()
+    return rc.get('repo_url')
+
+
 def get_provider_upgrade(target=False):
     """Get the cloudify.nodes.terraform.Module provider_upgrade"""
     instance = get_ctx_instance(target=target)
@@ -395,6 +408,44 @@ def get_terraform_source_material(target=False):
             source, target=target)
     update_resource_config(resource_config)
     return terraform_source
+
+
+def get_opa_bundles(target=False):
+    """Downloads OPA bundles to the Terraform module's directory and stores
+    them in a subdirectory according to their name.
+    """
+    instance = get_ctx_instance(target=target)
+    opa_config = instance.runtime_properties.get('opa_config')
+    policy_bundles = opa_config['policy_bundles']
+    node_instance_dir = get_node_instance_dir(target=target)
+
+    # Download each bundle zip file to a temporary directory
+    for bundle in policy_bundles:
+        source_location = bundle['location']
+        source_username = bundle.get('username')
+        source_password = bundle.get('password')
+        if isinstance(source_username, CommonSDKSecret):
+            source_username = source_username.secret
+        if isinstance(source_password, CommonSDKSecret):
+            source_password = source_password.secret
+        bundle_tmp_path = get_shared_resource(
+            source_location, dir=node_instance_dir,
+            username=source_username,
+            password=source_password)
+
+        bundle_tmp_path, _ = _create_source_path(bundle_tmp_path)
+        ctx.logger.debug("OPA bundle temp path {}".format(bundle_tmp_path))
+
+        # Copy the tempfiles into the node instance directory, preserving the
+        # directory structure
+        if os.path.isdir(bundle_tmp_path):
+            policy_dest_path = os.path.join(node_instance_dir, bundle['name'])
+            ctx.logger.debug("Moving OPA bundle {} to {}"
+                             .format(bundle['name'], policy_dest_path))
+            mkdir_p(policy_dest_path)
+            copy_directory(bundle_tmp_path, policy_dest_path)
+
+        remove_dir(bundle_tmp_path)
 
 
 def get_installation_source(target=False):
@@ -761,6 +812,7 @@ def get_terraform_state_file(target_dir=None):
 
 
 def create_backend_string(name, options):
+    name = name.strip('"')
     backend_block = convert_json_hcl(extract_hcl_from_dict(
         {
             'type_name': 'backend',
@@ -786,7 +838,7 @@ def create_provider_string(items):
         provider += convert_json_hcl(extract_hcl_from_dict(
           {
             'type_name': 'provider',
-            'option_name': item.get('name'),
+            'option_name': item.get('name').strip('"'),
             'option_value': item.get('options')
           }
         ))
@@ -823,7 +875,7 @@ def store_sensitive_properties(rest_client, output):
                                    update_if_exists=True)
 
 
-def refresh_resources_properties(state, output):
+def refresh_resources_properties(state, output, update_runtime_props=True):
     """Store all the resources (state and output) that we created as JSON
        in the context."""
     resources = {}
@@ -832,12 +884,13 @@ def refresh_resources_properties(state, output):
     for module in state.get('modules', []):
         for name, definition in module.get('resources', {}).items():
             resources[name] = definition
-    ctx.instance.runtime_properties['resources'] = resources
+    if update_runtime_props:
+        ctx.instance.runtime_properties['resources'] = resources
     # Duplicate for backward compatibility.
-    ctx.instance.runtime_properties[STATE] = resources
-    ctx.instance.runtime_properties['outputs'] = \
-        filter_state_for_sensitive_properties(output)
-    store_sensitive_properties(output=output)
+        ctx.instance.runtime_properties[STATE] = resources
+        ctx.instance.runtime_properties['outputs'] = \
+            filter_state_for_sensitive_properties(output)
+        store_sensitive_properties(output=output)
 
 
 def refresh_resources_drifts_properties(plan_json):

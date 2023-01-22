@@ -14,8 +14,8 @@
 
 from cloudify.state import current_ctx
 
-from . import TestBase
 from .. import utils
+from . import TestBase
 from ..constants import DRIFTS, IS_DRIFTED
 
 
@@ -89,9 +89,9 @@ class TestUtils(TestBase):
         }
         backend_hcl = """terraform {
     backend "foo" {
-       bucket = bucket_name
-       key = key_name
-       region = us-east-1
+       bucket = "bucket_name"
+       key = "key_name"
+       region = "us-east-1"
 
     }
 }"""
@@ -108,13 +108,13 @@ class TestUtils(TestBase):
         }
         backed_with_dict_hcl = """terraform {
     backend "foo" {
-       hostname = bar
-       organization = baz
+       hostname = "bar"
+       organization = "baz"
        workspaces {
-          name = taco
+          name = "taco"
 
        }
-       token = %#(##
+       token = "%#(##"
 
     }
 }"""
@@ -163,9 +163,9 @@ class TestUtils(TestBase):
             }
         }]
         provider_hcl = """provider "aws" {
-   version = version
-   access_key = access-key
-   region = us-east-1
+   version = "version"
+   access_key = "access-key"
+   region = "us-east-1"
 
 }
 
@@ -182,36 +182,36 @@ class TestUtils(TestBase):
             }
         }]
         provider_with_dict_hcl = """provider "azure" {
-   client_id = client_id
-   tenant_id = tenant_id
+   client_id = "client_id"
+   tenant_id = "tenant_id"
    features {
       key_vault {
 
       }
 
    }
-   environment = env
+   environment = "env"
 
 }
 
 """
         providers_hcl = """provider "aws" {
-   version = version
-   access_key = access-key
-   region = us-east-1
+   version = "version"
+   access_key = "access-key"
+   region = "us-east-1"
 
 }
 
 provider "azure" {
-   client_id = client_id
-   tenant_id = tenant_id
+   client_id = "client_id"
+   tenant_id = "tenant_id"
    features {
       key_vault {
 
       }
 
    }
-   environment = env
+   environment = "env"
 
 }
 

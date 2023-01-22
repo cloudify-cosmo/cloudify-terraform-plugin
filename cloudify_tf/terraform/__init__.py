@@ -300,6 +300,13 @@ class Terraform(CliTool):
                 yield
             os.remove(f.name)
 
+    @contextmanager
+    def plan_file(self):
+        json_result, _ = self.plan_and_show_two_formats()
+        with tempfile.NamedTemporaryFile('w', suffix='.json') as plan_file:
+            plan_file.write(json.dumps(json_result))
+            yield plan_file.name
+
     @property
     def version(self):
         if not self._version:
@@ -660,6 +667,16 @@ class Terraform(CliTool):
                 os.environ['PATH'], os.path.dirname(self.binary_path))
         with self.runtime_file(commands):
             self.terratag.terratag()
+
+    def check_opa(self, decision="deny"):
+        with self.plan_file() as plan_file:
+            if not hasattr(self, 'opa') or not self.opa:
+                return
+            self.opa.validate()
+            self.opa.terraform_root_module = self.root_module
+            return self.opa.evaluate_policy(
+                input_file=plan_file,
+                decision=decision)
 
     def run_infracost(self):
         if not self.infracost:

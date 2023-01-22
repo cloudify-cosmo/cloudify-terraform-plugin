@@ -2,7 +2,7 @@ plugins:
   tf:
     executor: central_deployment_agent
     package_name: cloudify-terraform-plugin
-    package_version: '0.19.13'
+    package_version: '0.19.14'
 
 dsl_definitions:
 
@@ -203,6 +203,34 @@ data_types:
         type: boolean
         default: false
 
+  cloudify.types.terraform.opa:
+    properties:
+      installation_source:
+        type: string
+        description: The URL to download the OPA binary from.
+        required: false
+        default: 'https://github.com/open-policy-agent/opa/releases/download/v0.47.4/opa_linux_amd64_static'
+      executable_path:
+        type: string
+        description: Path to an existing OPA binary on the system, if you prefer to use an existing installation.
+        required: false
+      config:
+        description:
+          OPA configuration file to override any default OPA behavior.
+        required: false
+      policy_bundles:
+        description: 'The policy bundles to use with OPA exec. This should be a list of dictionaries with location, name, and username/password (optional) keys. Policy bundles should be provided as ZIP archives.'
+        required: false
+      flags_override:
+        type: list
+        description: 'OPA exec runs with the --bundle and --decision arguments.
+        Additional CLI flags can be specified here. This should be unnecessary,
+        as --bundle and --decision should cover all use cases.'
+        required: false
+      enable:
+        type: boolean
+        default: false
+
   cloudify.types.terraform.tflint:
     properties:
       installation_source:
@@ -369,6 +397,8 @@ node_types:
         type: cloudify.types.terraform.terratag
       infracost_config:
         type: cloudify.types.terraform.infracost
+      opa_config:
+        type: cloudify.types.terraform.opa
     interfaces:
       cloudify.interfaces.validation:
         check_status:
@@ -489,6 +519,13 @@ node_types:
           inputs:
             infracost_config:
               default: { get_property: [ SELF, infracost_config ] }
+        opa:
+          implementation: tf.cloudify_tf.tasks.evaluate_opa_policy
+          inputs:
+            decision:
+              default: "terraform/deny"
+            opa_config:
+              default: { get_property: [SELF, opa_config ] }
 
 relationships:
 
