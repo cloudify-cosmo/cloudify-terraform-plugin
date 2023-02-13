@@ -36,7 +36,7 @@ commands:
 
   run_tf_vm_test:
     steps:
-      - run: ecosystem-test local-blueprint-test -b examples/blueprint-examples/virtual-machine/aws-terraform.yaml --test-id=virtual-machine -i aws_region_name=eu-south-1 -i env_name="$CIRCLE_BUILD_NUM" --on-failure=uninstall-force --timeout=1800 --nested-test=.circleci/test_features.py
+      - run: ecosystem-test local-blueprint-test -b examples/blueprint-examples/virtual-machine/aws-terraform.yaml --test-id=virtual-machine -i aws_region_name=us-west-2 -i env_name="$CIRCLE_BUILD_NUM" --on-failure=uninstall-force --timeout=1800 --nested-test=.circleci/test_features.py
 
   run_ui_test:
     steps:
