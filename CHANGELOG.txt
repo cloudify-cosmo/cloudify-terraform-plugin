@@ -1,3 +1,4 @@
+0.19.15: Do not delete files when debug node used.
 0.19.14:
  - Fix check status and check drift
  - Backend formatting fix.
