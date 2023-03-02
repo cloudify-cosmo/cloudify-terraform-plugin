@@ -204,12 +204,8 @@ def test_download_file(get_tf_tools_params):
             os.remove(executable_file)
             raise
         else:
-            # assert os.stat(result).st_size == 4748
             os.remove(result)
             shutil.rmtree(test_node_inst_dir)
-            # for file in os.listdir(test_node_inst_dir):
-            #     os.remove(file)
-            # os.rmdir(test_node_inst_dir)
 
 
 def test_download_archive(get_tf_tools_params):
