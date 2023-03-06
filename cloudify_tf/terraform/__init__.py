@@ -27,8 +27,12 @@ from .infracost import Infracost
 from contextlib import contextmanager
 from cloudify import exceptions as cfy_exc
 from cloudify_common_sdk.cli_tool_base import CliTool
-from cloudify_common_sdk.utils import run_subprocess, update_dict_values
 from cloudify_common_sdk.secure_property_management import get_stored_property
+from cloudify_common_sdk.utils import (
+    delete_debug,
+    run_subprocess,
+    update_dict_values
+)
 
 from .. import utils
 
@@ -298,12 +302,16 @@ class Terraform(CliTool):
                 f.close()
                 command.extend(['-var-file', f.name])
                 yield
-            os.remove(f.name)
+            if delete_debug():
+                os.remove(f.name)
 
     @contextmanager
     def plan_file(self):
         json_result, _ = self.plan_and_show_two_formats()
-        with tempfile.NamedTemporaryFile('w', suffix='.json') as plan_file:
+        with tempfile.NamedTemporaryFile(
+                'w',
+                suffix='.json',
+                delete=delete_debug()) as plan_file:
             plan_file.write(json.dumps(json_result))
             yield plan_file.name
 
@@ -476,7 +484,7 @@ class Terraform(CliTool):
         Execute terraform plan,
         then terraform show on the generated tfplan file
         """
-        with tempfile.NamedTemporaryFile() as plan_file:
+        with tempfile.NamedTemporaryFile(delete=delete_debug()) as plan_file:
             self.plan(plan_file.name)
             return self.show(plan_file.name)
 
@@ -485,7 +493,7 @@ class Terraform(CliTool):
         Execute terraform plan,
         then terraform show on the generated tfplan file
         """
-        with tempfile.NamedTemporaryFile() as plan_file:
+        with tempfile.NamedTemporaryFile(delete=delete_debug()) as plan_file:
             self.plan(plan_file.name)
             json_result = self.show(plan_file.name)
             plain_text_result = self.show_plain_text(plan_file.name)
@@ -497,7 +505,7 @@ class Terraform(CliTool):
         then terraform show on the generated tfplan file
         """
         status_problems = []
-        with tempfile.NamedTemporaryFile() as plan_file:
+        with tempfile.NamedTemporaryFile(delete=delete_debug()) as plan_file:
             self.plan(plan_file.name)
             plan = self.show(plan_file.name)
             self.refresh()
