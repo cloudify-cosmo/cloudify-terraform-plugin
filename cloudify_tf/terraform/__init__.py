@@ -389,8 +389,10 @@ class Terraform(CliTool):
     def tfvars(self, value):
         self._tfvars = value
 
-    def init(self, command_line_args=None):
-        cmdline = ['init', '-no-color', '-input=false']
+    def init(self, command_line_args=None, prefix=None, no_input=True):
+        cmdline = ['init', '-no-color']
+        if no_input:
+            cmdline.append('-input=false')
         if self.plugins_dir:
             cmdline.append('--plugin-dir=%s' % self.plugins_dir)
         if self.provider_upgrade:
@@ -398,8 +400,25 @@ class Terraform(CliTool):
         command = self._tf_command(cmdline)
         if command_line_args:
             command.extend(command_line_args)
+        if prefix:
+            command[:0] = prefix
         with self.runtime_file(command):
             return self.execute(command)
+
+    def migrate_state(self, name, options, backend_config):
+        migrate_args = []
+        answer_yes = ['echo', 'yes', '|']
+        self._backend = {
+            'name': name,
+            'options': options,
+        }
+        self.put_backend()
+        for key, value in backend_config.items():
+            migrate_args.append(
+                '-backend-config="{key}={value}"'.format(
+                    key=key, value=value))
+        migrate_args.append('-migrate-state')
+        self.init(migrate_args, answer_yes, no_input=False)
 
     def destroy(self):
         command = self._tf_command(['destroy',

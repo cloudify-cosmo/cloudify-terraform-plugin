@@ -9,4 +9,5 @@ flake8
 # For integration tests
 pytest==4.6.3
 pyyaml>=4.2b1
-cloudify-utilities-plugins-sdk>=0.0.93
+
+https://github.com/cloudify-incubator/cloudify-utilities-plugins-sdk/archive/refs/heads/cybl-2014-hcl-var-handling.zip
