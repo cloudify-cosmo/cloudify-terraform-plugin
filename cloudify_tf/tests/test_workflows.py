@@ -2,8 +2,15 @@ from mock import patch, MagicMock
 from unittest import TestCase
 from cloudify.mocks import MockContext
 from cloudify.state import current_ctx
+from cloudify.exceptions import NonRecoverableError
 
 from .. import workflows
+
+
+class MockedWorkflowCtx(MockContext):
+
+    def graph_mode(self):
+        return MagicMock()
 
 
 class TFWorkflowTests(TestCase):
@@ -49,13 +56,14 @@ class TFWorkflowTests(TestCase):
         assert sequence.add.call_count == 4
 
     def test_migrate_state(self):
-        ctx = MockContext()
+        ctx = MockedWorkflowCtx()
         current_ctx.set(ctx)
         backend = {}
         backend_config = {'baz': 'qux'}
         nodes = ['foo']
         node_instances = []
-        with self.assertRaisesRegex(KeyError, 'No new backend was provided'):
+        with self.assertRaisesRegex(
+                NonRecoverableError, 'No new backend was provided'):
             workflows.migrate_state(
                 ctx,
                 node_ids=nodes,
@@ -66,7 +74,8 @@ class TFWorkflowTests(TestCase):
         backend = {'foo': 'bar'}
         nodes = ['foo']
         node_instances = ['bar']
-        with self.assertRaisesRegex(KeyError, '*mutually exclusive*'):
+        with self.assertRaisesRegex(
+                NonRecoverableError, 'mutually exclusive'):
             workflows.migrate_state(
                 ctx,
                 node_ids=nodes,

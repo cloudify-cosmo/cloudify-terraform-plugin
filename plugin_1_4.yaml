@@ -165,6 +165,16 @@ data_types:
         type: string
         description: file Name .tfvars
         required: false
+      store_output_secrets:
+        type: dict
+        description: |
+          add/update secrets from terraform senstive outputs.
+          should be in this format
+          terraform_output_name: secrets_to_created_or_updated
+        required: false
+      obfuscate_sensitive:
+        type: boolean
+        default: false
 
 
   cloudify.types.terraform.tfsec:
@@ -467,33 +477,7 @@ node_types:
             terratag_config:
               default: { get_property: [ SELF, terratag_config ] }
         reload:
-          <<: *terraform_heal
-          inputs:
-            source:
-              description: >
-                URL or path to a ZIP/tar.gz file or a Git repository to obtain
-                new module source from. If omitted, then the module is reloaded
-                from its last location.
-              type: string
-              default: { get_attribute: [ SELF, last_source_location ] }
-            source_path:
-              type: string
-              description: The path within the source property, where the terraform files may be found.
-              default: { get_property: [ SELF, resource_config, source_path ] }
-            variables:
-              type: dict
-              description: Variables override.
-              default: { get_property: [ SELF, resource_config, variables ] }
-            environment_variables:
-              type: dict
-              description: Environment variables override.
-              default: { get_property: [ SELF, resource_config, environment_variables ] }
-            destroy_previous:
-              description: >
-                If true, then the plugin destroys the existing Terraform
-                topology before applying the new one.
-              type: boolean
-              default: false
+          <<: *terraform_reload
         refresh:
           # Refreshes Terraform's state.
           implementation: tf.cloudify_tf.tasks.state_pull
