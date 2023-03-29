@@ -1,4 +1,6 @@
-0.19.16: add __version__.py file in cloudify_tf folder.
+0.20.0:
+  - CYBL-2014 Support backend migration from local to hosted.
+  - add __version__.py file in cloudify_tf folder
 0.19.15: Do not delete files when debug node used.
 0.19.14:
  - Fix check status and check drift

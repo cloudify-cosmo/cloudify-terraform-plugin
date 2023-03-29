@@ -30,6 +30,7 @@ from . import TestBase
 from ..tasks import (apply,
                      install,
                      check_drift,
+                     migrate_state,
                      setup_linters,
                      import_resource,
                      set_directory_config)
@@ -683,3 +684,61 @@ class TestPlugin(TestBase):
                 {'example_vm': tf_pulled_resources.get('resources')[0]})
             self.assertEqual(ctx.instance.runtime_properties['outputs'],
                              tf_output)
+
+    @patch('cloudify_tf.terraform.utils.get_binary_location_from_rel')
+    @patch('cloudify_tf.terraform.Terraform.runtime_file')
+    @patch('cloudify_tf.terraform.Terraform.version')
+    @patch('cloudify_tf.decorators.get_terraform_source')
+    @patch('cloudify_common_sdk.utils.get_deployment_dir')
+    @patch('cloudify_tf.utils.get_plugins_dir')
+    @patch('cloudify_tf.utils.dump_file')
+    @patch('cloudify_tf.utils.store_sensitive_properties')
+    @patch('cloudify_tf.utils._unzip_archive')
+    @patch('cloudify_tf.utils.copy_directory')
+    @patch('cloudify_tf.utils.get_terraform_state_file', return_value=False)
+    @patch('cloudify_tf.utils.get_cloudify_version', return_value="6.1.0")
+    @patch('cloudify_tf.utils.get_node_instance_dir',
+           return_value=test_dir3)
+    @patch('cloudify_tf.terraform.Terraform.terraform_outdated',
+           return_value=False)
+    @patch('cloudify_tf.utils.store_sensitive_properties')
+    @patch('cloudify_tf.terraform.Terraform.set_plugins_dir')
+    @patch('cloudify_tf.utils.get_executable_path')
+    @patch('cloudify_tf.terraform.Terraform.execute')
+    @patch('cloudify_tf.utils.get_resource_config')
+    def test_migrate_state(self,
+                           mock_resource_config,
+                           mock_execute,
+                           mock_exec_path,
+                           mock_plugins_dir,
+                           *_):
+        conf = self.get_terraform_module_conf_props(test_dir3)
+        mock_resource_config.return_value = conf.get('resource_config')
+        mock_exec_path.return_value = 'terraform'
+        mock_plugins_dir.return_value = 'foo'
+        ctx = self.mock_ctx("test_migrate_state", conf)
+        current_ctx.set(ctx=ctx)
+        backend = {
+            'name': 'foo',
+            'options': {
+                'bar': 'baz'
+            }
+        }
+        backend_config = {
+            'bar': 'baz'
+        }
+        kwargs = dict(ctx=ctx,
+                      backend=backend,
+                      backend_config=backend_config)
+        migrate_state(**kwargs)
+        mock_execute.assert_called_with([
+            'echo',
+            'yes',
+            '|',
+            'terraform',
+            'init',
+            '-no-color',
+            "--plugin-dir=foo",
+            '-backend-config="bar=baz"',
+            '-migrate-state']
+        )

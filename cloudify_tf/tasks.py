@@ -173,6 +173,20 @@ def apply(ctx, tf, force=False, **kwargs):
         _apply(tf, old_plan, force)
 
 
+@operation
+@with_terraform
+def migrate_state(ctx, tf, backend, backend_config, **_):
+    name = backend.get('name')
+    options = backend.get('options')
+    credentials = backend.get('credentials', {})
+    if credentials:
+        ctx.logger.info('Credentials are not used in migrate-state.')
+    tf.migrate_state(name, options, backend_config)
+    resource_config = utils.get_resource_config()
+    resource_config.update({'backend': backend})
+    utils.update_resource_config(resource_config)
+
+
 class FailedPlanValidation(NonRecoverableError):
     pass
 

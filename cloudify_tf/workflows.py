@@ -25,8 +25,11 @@ REL2 = 'cloudify.relationships.terraform.run_on_host'
 PRECONFIGURE = 'cloudify.interfaces.relationship_lifecycle.preconfigure'
 
 
-def _terraform_operation(ctx, operation, node_ids,
-                         node_instance_ids, **kwargs):
+def _terraform_operation(ctx,
+                         operation,
+                         node_ids,
+                         node_instance_ids,
+                         **kwargs):
     graph = ctx.graph_mode()
     sequence = graph.sequence()
     # Iterate over all node instances of type "cloudify.nodes.terraform.Module"
@@ -137,6 +140,28 @@ def run_infracost(ctx,
         node_ids,
         node_instance_ids,
         **kwargs).execute()
+
+
+def migrate_state(ctx, node_ids=None, node_instance_ids=None, **kwargs):
+    graph = ctx.graph_mode()
+
+    if not kwargs.get('backend'):
+        raise NonRecoverableError('No new backend was provided.')
+
+    if node_ids and node_instance_ids:
+        raise NonRecoverableError(
+            'The parameters node_ids and node_instance_ids are '
+            'mutually exclusive. '
+            '{} and {} were provided.'.format(node_ids, node_instance_ids)
+        )
+    _terraform_operation(
+        ctx,
+        "terraform.migrate_state",
+        node_ids,
+        node_instance_ids,
+        **kwargs).execute()
+
+    return graph.execute()
 
 
 def terraform_plan(ctx,

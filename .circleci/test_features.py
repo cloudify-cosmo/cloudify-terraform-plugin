@@ -14,6 +14,7 @@
 # limitations under the License.
 
 from os import environ
+from json import loads
 from contextlib import contextmanager
 
 import pytest
@@ -128,9 +129,17 @@ def cloud_resources_node_instance_runtime_properties():
 def change_a_resource(props):
     group = props['resources']['example_security_group']
     sg_id = group['instances'][0]['attributes']['id']
-    environ['AWS_DEFAULT_REGION'] = \
-        props['resource_config']['variables']['aws_region']
-    ec2 = client('ec2')
+    terraform_vars = props['resource_config']['variables']
+
+    environ['AWS_DEFAULT_REGION'] = terraform_vars['aws_region']
+    access = get_secret(terraform_vars['access_key'])
+    secret = get_secret(terraform_vars['secret_key'])
+    token = get_secret(terraform_vars['token'])
+    ec2 = client(
+        'ec2',
+        aws_access_key_id=access,
+        aws_secret_access_key=secret,
+        aws_session_token=token)
     ec2.authorize_security_group_ingress(
         GroupId=sg_id,
         IpProtocol="tcp",
@@ -138,3 +147,10 @@ def change_a_resource(props):
         FromPort=53,
         ToPort=53
     )
+
+
+def get_secret(value):
+    loaded_value = loads(value)
+    secret_name = loaded_value['get_secret']
+    value = cloudify_exec('cfy secrets get {}'.format(secret_name))
+    return value.get('value')

@@ -38,6 +38,7 @@ from cloudify.utils import exception_to_error_cause
 from cloudify_common_sdk.hcl import (
     convert_json_hcl,
     extract_hcl_from_dict,
+    remove_quotes_from_vars,
 )
 from cloudify_common_sdk.utils import (
     v1_gteq_v2,
@@ -820,7 +821,9 @@ def create_backend_string(name, options):
             'option_value': options
         }
     ))
-    return 'terraform {{\n{}}}'.format(indent(backend_block, '    '))
+    terraform_block = 'terraform {{\n{}}}'.format(
+        indent(backend_block, '    '))
+    return remove_quotes_from_vars(terraform_block)
 
 
 def create_required_providers_string(items):
