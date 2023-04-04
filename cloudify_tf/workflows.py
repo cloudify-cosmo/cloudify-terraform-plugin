@@ -30,6 +30,10 @@ def _terraform_operation(ctx,
                          node_ids,
                          node_instance_ids,
                          **kwargs):
+    if 'force' in kwargs:
+        force = kwargs.get('force')
+        kwargs['force'] = eval(force)
+
     graph = ctx.graph_mode()
     sequence = graph.sequence()
     # Iterate over all node instances of type "cloudify.nodes.terraform.Module"

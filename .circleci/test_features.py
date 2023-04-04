@@ -82,6 +82,7 @@ def test_plan_protection(*_, **__):
             before=before.get('outputs')))
         logger.info('Now rerunning plan.')
         params['force'] = False
+        # TODO: IT appears that an earlier change for heal or update broke this. look at changes to wupdate workflow.
         executions_start('reload_terraform_template', TEST_ID, 300, params)
         after = cloud_resources_node_instance_runtime_properties()
         logger.info('After outputs: {after}'.format(
@@ -152,5 +153,5 @@ def change_a_resource(props):
 def get_secret(value):
     loaded_value = loads(value)
     secret_name = loaded_value['get_secret']
-    value = cloudify_exec('cfy secrets get {}'.format(secret_name))
+    value = cloudify_exec('cfy secrets get {}'.format(secret_name), log=False)
     return value.get('value')

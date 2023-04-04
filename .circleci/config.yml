@@ -96,17 +96,10 @@ workflows:
           filters:
             branches:
               only: /([0-9\.]*\-build|master|dev)/
-      - wagonorb/build_bundle:
-          filters:
-            branches:
-              only: /([0-9\.]*\-build|master|dev)/
-          requires:
-            - wagonorb/wagon
-            - wagonorb/arch64_wagon
-            - wagonorb/rhel_wagon
       - integration_tests_py3:
-          requires:
-            - wagonorb/build_bundle
+          context: 
+            - slack-secrets
+          <<: *unittest-post-steps
           filters:
             branches:
               only: /([0-9\.]*\-build|master|dev)/
@@ -115,7 +108,6 @@ workflows:
             branches:
               only: /master/
           requires:
-            - wagonorb/build_bundle
             - node/unittests_job
             - wagonorb/wagon
             - wagonorb/arch64_wagon
@@ -155,17 +147,11 @@ workflows:
           filters:
             branches:
               only: /([0-9\.]*\-build|master|dev)/
-      - wagonorb/build_bundle:
-          filters:
-            branches:
-              only: /master/
-          requires:
-            - wagonorb/wagon
-            - wagonorb/rhel_wagon
-            - wagonorb/arch64_wagon
       - integration_tests_py3:
+          context: 
+            - slack-secrets
+          <<: *unittest-post-steps
           requires:
-            - wagonorb/build_bundle
             - wagonorb/wagon
             - wagonorb/rhel_wagon
             - wagonorb/arch64_wagon
