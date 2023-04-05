@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
 from os import environ
 from json import loads
-import time
 from contextlib import contextmanager
 
 import pytest
@@ -77,6 +77,7 @@ def test_plan_protection(*_, **__):
         logger.info('Wrap plan for public VM. '
                     'Now we will run reload_terraform_template for private VM '
                     'and it should fail.')
+        time.sleep(5)
         try:
             executions_start(
                 'reload_terraform_template', TEST_ID, 300, private_params_force)
