@@ -77,16 +77,15 @@ def test_plan_protection(*_, **__):
         logger.info('Wrap plan for public VM. '
                     'Now we will run reload_terraform_template for private VM '
                     'and it should fail.')
-        time.sleep(5)
         try:
             executions_start(
                 'reload_terraform_template', TEST_ID, 300, private_params_force)
         except EcosystemTestException:
-            logger.info('Apply caught our plan mismatch.')
+            logger.info('Apply caught our plan mismatch.'.upper())
         else:
             raise EcosystemTestException(
                 'Apply did not catch the plan mismatch.')
-        time.sleep(5)
+        executions_start('terraform_plan', TEST_ID, 300, private_params)
         executions_start('terraform_plan', TEST_ID, 300, private_params)
         time.sleep(10)
         before = cloud_resources_node_instance_runtime_properties()
@@ -120,7 +119,7 @@ def node_instance_by_name(name):
 
 def node_instance_runtime_properties(name):
     node_instance = cloudify_exec(
-        'cfy node-instance get {name}'.format(name=name))
+        'cfy node-instance get {name}'.format(name=name), log=False)
     return node_instance['runtime_properties']
 
 
