@@ -99,7 +99,6 @@ workflows:
       - integration_tests_py3:
           context: 
             - slack-secrets
-          <<: *unittest-post-steps
           filters:
             branches:
               only: /([0-9\.]*\-build|master|dev)/
