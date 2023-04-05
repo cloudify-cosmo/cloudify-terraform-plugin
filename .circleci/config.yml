@@ -150,7 +150,6 @@ workflows:
       - integration_tests_py3:
           context: 
             - slack-secrets
-          <<: *unittest-post-steps
           requires:
             - wagonorb/wagon
             - wagonorb/rhel_wagon
