@@ -67,6 +67,8 @@ jobs:
     environment:
       CLOUDIFY_SSL_TRUST_ALL: true
     steps:
+      - attach_workspace:
+          at: workspace  
       - checkout
       - managerorb/create_manager_container_latest
       - prepare_test_manager
