@@ -310,8 +310,7 @@ class Terraform(CliTool):
         json_result, _ = self.plan_and_show_two_formats()
         with tempfile.NamedTemporaryFile(
                 'w',
-                suffix='.json',
-                delete=delete_debug()) as plan_file:
+                suffix='.json') as plan_file:
             plan_file.write(json.dumps(json_result))
             yield plan_file.name
 
@@ -512,7 +511,7 @@ class Terraform(CliTool):
         Execute terraform plan,
         then terraform show on the generated tfplan file
         """
-        with tempfile.NamedTemporaryFile(delete=delete_debug()) as plan_file:
+        with tempfile.NamedTemporaryFile() as plan_file:
             self.plan(plan_file.name)
             json_result = self.show(plan_file.name)
             plain_text_result = self.show_plain_text(plan_file.name)
@@ -524,7 +523,7 @@ class Terraform(CliTool):
         then terraform show on the generated tfplan file
         """
         status_problems = []
-        with tempfile.NamedTemporaryFile(delete=delete_debug()) as plan_file:
+        with tempfile.NamedTemporaryFile() as plan_file:
             self.plan(plan_file.name)
             plan = self.show(plan_file.name)
             self.refresh()
