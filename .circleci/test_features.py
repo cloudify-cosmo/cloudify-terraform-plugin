@@ -15,6 +15,7 @@
 
 from os import environ
 from json import loads
+import time
 from contextlib import contextmanager
 
 import pytest
@@ -26,6 +27,24 @@ from ecosystem_tests.dorkl.exceptions import EcosystemTestException
 from ecosystem_tests.dorkl.cloudify_api import cloudify_exec, executions_start
 
 TEST_ID = environ.get('__ECOSYSTEM_TEST_ID', 'virtual-machine')
+
+source = 'https://github.com/cloudify-community/tf-source/archive/refs/heads/main.zip'   # noqa
+
+public_params = {
+    'source': source,
+    'source_path': 'template/modules/public_vm',
+}
+
+private_params = {
+    'source': source,
+    'source_path': 'template/modules/private_vm',
+}
+
+private_params_force = {
+    'source': source,
+    'source_path': 'template/modules/private_vm',
+    'force': False
+}
 
 
 @contextmanager
@@ -54,36 +73,26 @@ def test_drifts(*_, **__):
 @pytest.mark.dependency()
 def test_plan_protection(*_, **__):
     with test_cleaner_upper():
-        params = {
-            'source': 'https://github.com/cloudify-community/tf-source/archive/refs/heads/main.zip',  # noqa
-            'source_path': 'template/modules/public_vm',
-        }
-        executions_start('terraform_plan', TEST_ID, 300, params)
+        executions_start('terraform_plan', TEST_ID, 300, public_params)
         logger.info('Wrap plan for public VM. '
                     'Now we will run reload_terraform_template for private VM '
                     'and it should fail.')
-        params = {
-            'source': 'https://github.com/cloudify-community/tf-source/archive/refs/heads/main.zip',  # noqa
-            'source_path': 'template/modules/private_vm',
-            'force': False
-        }
         try:
-            executions_start('reload_terraform_template', TEST_ID, 300, params)
+            executions_start(
+                'reload_terraform_template', TEST_ID, 300, private_params_force)
         except EcosystemTestException:
             logger.info('Apply caught our plan mismatch.')
         else:
             raise EcosystemTestException(
                 'Apply did not catch the plan mismatch.')
-        del params['force']
-        executions_start('terraform_plan', TEST_ID, 300, params)
-        logger.info('Now rerunning apply with a matching plan.')
+        executions_start('terraform_plan', TEST_ID, 300, private_params)
+        time.sleep(5)
         before = cloud_resources_node_instance_runtime_properties()
         logger.info('Before outputs: {before}'.format(
             before=before.get('outputs')))
         logger.info('Now rerunning plan.')
-        params['force'] = False
-        # TODO: IT appears that an earlier change for heal or update broke this. look at changes to wupdate workflow.
-        executions_start('reload_terraform_template', TEST_ID, 300, params)
+        executions_start(
+            'reload_terraform_template', TEST_ID, 300, private_params_force)
         after = cloud_resources_node_instance_runtime_properties()
         logger.info('After outputs: {after}'.format(
             after=before.get('outputs')))
@@ -96,7 +105,8 @@ def nodes():
 
 
 def node_instances():
-    return cloudify_exec('cfy node-instances list -d {}'.format(TEST_ID))
+    return cloudify_exec(
+        'cfy node-instances list -d {}'.format(TEST_ID), log=False)
 
 
 def node_instance_by_name(name):
@@ -120,8 +130,6 @@ def cloud_resources_node_instance_runtime_properties():
         raise RuntimeError('No cloud_resources node instances found.')
     runtime_properties = node_instance_runtime_properties(
             node_instance['id'])
-    logger.info('Runtime properties: {runtime_properties}'.format(
-        runtime_properties=runtime_properties))
     if not runtime_properties:
         raise RuntimeError('No cloud_resources runtime_properties found.')
     return runtime_properties
@@ -131,16 +139,17 @@ def change_a_resource(props):
     group = props['resources']['example_security_group']
     sg_id = group['instances'][0]['attributes']['id']
     terraform_vars = props['resource_config']['variables']
-
     environ['AWS_DEFAULT_REGION'] = terraform_vars['aws_region']
     access = get_secret(terraform_vars['access_key'])
     secret = get_secret(terraform_vars['secret_key'])
-    token = get_secret(terraform_vars['token'])
-    ec2 = client(
-        'ec2',
+    client_kwargs = dict(
         aws_access_key_id=access,
         aws_secret_access_key=secret,
-        aws_session_token=token)
+    )
+    if 'token' in terraform_vars:
+        token = get_secret(terraform_vars['token'])
+        client_kwargs.update({'aws_session_token': token})
+    ec2 = client('ec2', **client_kwargs)
     ec2.authorize_security_group_ingress(
         GroupId=sg_id,
         IpProtocol="tcp",
