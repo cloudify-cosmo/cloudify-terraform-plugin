@@ -41,6 +41,8 @@ commands:
 
   prepare_test_manager:
     steps:
+      - attach_workspace:
+          at: workspace
       - run: ecosystem-test prepare-test-manager -l $TEST_LICENSE --generate-new-aws-token -es aws_access_key_id=$aws_access_key_id -es aws_secret_access_key=$aws_secret_access_key --yum-package python-netaddr --yum-package git -p $(find ~/project/workspace/build/ -name *centos-Core*x86_64.wgn)  ~/project/plugin.yaml
       - run: ecosystem-test upload-plugin -PN utilities
 
@@ -67,8 +69,6 @@ jobs:
     environment:
       CLOUDIFY_SSL_TRUST_ALL: true
     steps:
-      - attach_workspace:
-          at: workspace  
       - checkout
       - managerorb/create_manager_container_latest
       - prepare_test_manager
@@ -101,6 +101,8 @@ workflows:
       - integration_tests_py3:
           context: 
             - slack-secrets
+          requires:
+            - wagonorb/wagon
           filters:
             branches:
               only: /([0-9\.]*\-build|master|dev)/
