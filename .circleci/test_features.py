@@ -56,20 +56,6 @@ def test_cleaner_upper():
         raise
 
 
-@pytest.mark.dependency(depends=['test_plan_protection'])
-def test_drifts(*_, **__):
-    with test_cleaner_upper():
-        before_props = cloud_resources_node_instance_runtime_properties()
-        change_a_resource(before_props)
-        executions_start('refresh_terraform_resources', TEST_ID, 150)
-        after_props = cloud_resources_node_instance_runtime_properties()
-        drifts = after_props.get('drifts')
-        logger.info('Drifts: {drifts}'.format(drifts=drifts))
-        if drifts:
-            return
-        raise Exception('The test_drifts test failed.')
-
-
 @pytest.mark.dependency()
 def test_plan_protection(*_, **__):
     with test_cleaner_upper():
@@ -99,6 +85,20 @@ def test_plan_protection(*_, **__):
             after=before.get('outputs')))
         if after['outputs'] == before['outputs']:
             raise Exception('Outputs should not match after reload.')
+
+
+@pytest.mark.dependency(depends=['test_plan_protection'])
+def test_drifts(*_, **__):
+    with test_cleaner_upper():
+        before_props = cloud_resources_node_instance_runtime_properties()
+        change_a_resource(before_props)
+        executions_start('refresh_terraform_resources', TEST_ID, 150)
+        after_props = cloud_resources_node_instance_runtime_properties()
+        drifts = after_props.get('drifts')
+        logger.info('Drifts: {drifts}'.format(drifts=drifts))
+        if drifts:
+            return
+        raise Exception('The test_drifts test failed.')
 
 
 def nodes():
