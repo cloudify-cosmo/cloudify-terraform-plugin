@@ -1,20 +1,10 @@
 version: 2.1
 
-unittest-post-steps: &unittest-post-steps
-  post-steps:
-    - store_test_results:
-        path: /home/circleci/project/nosetests.xml
-    - store_artifacts:
-        path: /home/circleci/project/coverage.xml
-        prefix: tests
-    - slack/notify_failed
-
 orbs:
   node: cloudify/public-unittest-orb@1 #orb version
   wagonorb: cloudify/wagon-bulder-orb@2 #orb version
   releaseorb: cloudify/release-orb@1 #orb version
   managerorb: cloudify/manager-orb@2
-  slack: cloudify/notify-slack@2
 
 checkout:
   post:
@@ -46,19 +36,13 @@ commands:
 
   run_tf_vm_test:
     steps:
-      - run: ecosystem-test local-blueprint-test -b examples/blueprint-examples/virtual-machine/aws-terraform.yaml --test-id=virtual-machine -i aws_region_name=us-west-2 -i env_name="$CIRCLE_BUILD_NUM" --on-failure=uninstall-force --timeout=1800 --nested-test=.circleci/test_features.py | tee -a run_tf_vm_test.log 
-      - store_artifacts:
-          path: run_tf_vm_test.log
-      - slack/notify_failed
-      
+      - run: ecosystem-test local-blueprint-test -b examples/blueprint-examples/virtual-machine/aws-terraform.yaml --test-id=virtual-machine -i aws_region_name=us-west-2 -i env_name="$CIRCLE_BUILD_NUM" --on-failure=uninstall-force --timeout=1800 --nested-test=.circleci/test_features.py
+
   run_ui_test:
     steps:
       - run: wget https://github.com/cloudify-cosmo/cloudify-stage/raw/master/test/cypress/fixtures/blueprints/topology.zip
       - run: unzip topology.zip
-      - run: ecosystem-test local-blueprint-test -b terraform-bp/blueprint.yaml --on-failure=uninstall-force --timeout=1800 --nested-test=.circleci/test_ui_features.py | tee -a run_ui_test.log 
-      - store_artifacts:
-          path: run_ui_test.log
-      - slack/notify_failed
+      - run: ecosystem-test local-blueprint-test -b terraform-bp/blueprint.yaml --on-failure=uninstall-force --timeout=1800 --nested-test=.circleci/test_ui_features.py
 
 
 jobs:
@@ -78,10 +62,7 @@ workflows:
   tests:
     jobs:
       - node/check_py3_compat_job
-      - node/unittests_job:
-          context: 
-            - slack-secrets
-          <<: *unittest-post-steps
+      - node/unittests_job
       - node/validate_documentation_job
       - node/validate_version_job
       - wagonorb/wagon:
@@ -96,17 +77,11 @@ workflows:
           filters:
             branches:
               only: /([0-9\.]*\-build|master|dev)/
-      - wagonorb/build_bundle:
-          filters:
-            branches:
-              only: /([0-9\.]*\-build|master|dev)/
+      - integration_tests_py3:
           requires:
             - wagonorb/wagon
             - wagonorb/arch64_wagon
             - wagonorb/rhel_wagon
-      - integration_tests_py3:
-          requires:
-            - wagonorb/build_bundle
           filters:
             branches:
               only: /([0-9\.]*\-build|master|dev)/
@@ -115,7 +90,6 @@ workflows:
             branches:
               only: /master/
           requires:
-            - wagonorb/build_bundle
             - node/unittests_job
             - wagonorb/wagon
             - wagonorb/arch64_wagon
@@ -139,10 +113,7 @@ workflows:
               - master
     jobs:
       - node/check_py3_compat_job
-      - node/unittests_job:
-          context: 
-            - slack-secrets
-          <<: *unittest-post-steps
+      - node/unittests_job
       - wagonorb/wagon:
           filters:
             branches:
@@ -155,17 +126,8 @@ workflows:
           filters:
             branches:
               only: /([0-9\.]*\-build|master|dev)/
-      - wagonorb/build_bundle:
-          filters:
-            branches:
-              only: /master/
-          requires:
-            - wagonorb/wagon
-            - wagonorb/rhel_wagon
-            - wagonorb/arch64_wagon
       - integration_tests_py3:
           requires:
-            - wagonorb/build_bundle
             - wagonorb/wagon
             - wagonorb/rhel_wagon
             - wagonorb/arch64_wagon
