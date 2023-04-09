@@ -15,7 +15,7 @@
 
 import time
 from os import environ
-from json import loads
+from json import loads, JSONDecodeError
 from contextlib import contextmanager
 
 import pytest
@@ -160,7 +160,10 @@ def change_a_resource(props):
 
 
 def get_secret(value):
-    loaded_value = loads(value)
+    try:
+        loaded_value = loads(value)
+    except JSONDecodeError:
+        return value
     secret_name = loaded_value['get_secret']
     value = cloudify_exec('cfy secrets get {}'.format(secret_name), log=False)
     return value.get('value')
