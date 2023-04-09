@@ -193,10 +193,16 @@ class FailedPlanValidation(NonRecoverableError):
 
 
 def compare_plan_results(new_plan, old_plan):
-    diff = DeepDiff(old_plan, new_plan)
+
+    left = sorted(old_plan.get('resource_changes', []),
+                  key=lambda d: d['address']) 
+    right = sorted(new_plan.get('resource_changes', []),
+                   key=lambda d: d['address']) 
+
+    diff = DeepDiff(left, right)
     if diff:
         ctx_from_imports.logger.info(
-            'New plan and old plan diff {}'.format(diff))
+            'Old plan and new plan diff {}'.format(diff))
         raise FailedPlanValidation(
             'The new plan differs from the old plan. '
             'Please Rerun plan workflow before executing apply worfklow.')
