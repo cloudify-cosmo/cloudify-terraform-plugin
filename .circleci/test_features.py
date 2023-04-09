@@ -72,7 +72,6 @@ def test_plan_protection(*_, **__):
             raise EcosystemTestException(
                 'Apply did not catch the plan mismatch.')
         executions_start('terraform_plan', TEST_ID, 300, private_params)
-        executions_start('terraform_plan', TEST_ID, 300, private_params)
         time.sleep(10)
         before = cloud_resources_node_instance_runtime_properties()
         logger.info('Before outputs: {before}'.format(

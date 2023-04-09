@@ -191,9 +191,9 @@ class FailedPlanValidation(NonRecoverableError):
     pass
 
 
-def compare_plan_results(new_plan, old_plan, force):
+def compare_plan_results(new_plan, old_plan):
     if old_plan != new_plan:
-        ctx_from_imports.logger.debug('New plan and old plan diff {}'.format(
+        ctx_from_imports.logger.info('New plan and old plan diff {}'.format(
             set(old_plan) ^ set(new_plan)))
         raise FailedPlanValidation(
             'The new plan differs from the old plan. '
@@ -207,7 +207,7 @@ def _apply(tf, old_plan=None, force=False):
             tf.run_terratag()
         if old_plan and not force:
             new_plan = tf.plan_and_show()
-            compare_plan_results(new_plan, old_plan, force)
+            compare_plan_results(new_plan, old_plan)
         if not force:
             tf.check_tflint()
             tf.check_tfsec()
