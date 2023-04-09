@@ -42,5 +42,6 @@ setup(
         "networkx==1.9.1",
         "requests>=2.7.0,<3.0",
         "cloudify-utilities-plugins-sdk>=0.0.114",
+        'deepdiff==3.3.0',
     ]
 )

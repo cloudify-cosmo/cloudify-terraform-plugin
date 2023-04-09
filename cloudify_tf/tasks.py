@@ -16,6 +16,7 @@
 import os
 import sys
 
+from deepdiff import DeepDiff
 from cloudify.decorators import operation
 from cloudify import ctx as ctx_from_imports
 from cloudify.utils import exception_to_error_cause
@@ -192,9 +193,10 @@ class FailedPlanValidation(NonRecoverableError):
 
 
 def compare_plan_results(new_plan, old_plan):
-    if old_plan != new_plan:
-        ctx_from_imports.logger.info('New plan and old plan diff {}'.format(
-            set(old_plan) ^ set(new_plan)))
+    diff = DeepDiff(old_plan, new_plan)
+    if diff:
+        ctx_from_imports.logger.info(
+            'New plan and old plan diff {}'.format(diff))
         raise FailedPlanValidation(
             'The new plan differs from the old plan. '
             'Please Rerun plan workflow before executing apply worfklow.')
