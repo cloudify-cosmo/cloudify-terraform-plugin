@@ -1,10 +1,24 @@
 version: 2.1
 
+job-post-steps: &job-post-steps
+  post-steps:
+   - slack/notify_failed
+
+unittest-post-steps: &unittest-post-steps
+  post-steps:
+    - store_test_results:
+        path: /home/circleci/project/nosetests.xml
+    - store_artifacts:
+        path: /home/circleci/project/coverage.xml
+        prefix: tests
+    - slack/notify_failed
+
 orbs:
   node: cloudify/public-unittest-orb@1 #orb version
   wagonorb: cloudify/wagon-bulder-orb@2 #orb version
   releaseorb: cloudify/release-orb@1 #orb version
   managerorb: cloudify/manager-orb@2
+  slack: cloudify/notify-slack@2
 
 checkout:
   post:
@@ -31,6 +45,8 @@ commands:
 
   prepare_test_manager:
     steps:
+      - attach_workspace:
+          at: workspace
       - run: ecosystem-test prepare-test-manager -l $TEST_LICENSE --generate-new-aws-token -es aws_access_key_id=$aws_access_key_id -es aws_secret_access_key=$aws_secret_access_key --yum-package python-netaddr --yum-package git -p $(find ~/project/workspace/build/ -name *centos-Core*x86_64.wgn)  ~/project/plugin.yaml
       - run: ecosystem-test upload-plugin -PN utilities
 
@@ -80,8 +96,6 @@ workflows:
       - integration_tests_py3:
           requires:
             - wagonorb/wagon
-            - wagonorb/arch64_wagon
-            - wagonorb/rhel_wagon
           filters:
             branches:
               only: /([0-9\.]*\-build|master|dev)/
@@ -127,6 +141,9 @@ workflows:
             branches:
               only: /([0-9\.]*\-build|master|dev)/
       - integration_tests_py3:
+          context: 
+            - slack-secrets
+          <<: *job-post-steps
           requires:
             - wagonorb/wagon
             - wagonorb/rhel_wagon

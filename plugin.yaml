@@ -2,7 +2,7 @@ plugins:
   tf:
     executor: central_deployment_agent
     package_name: cloudify-terraform-plugin
-    package_version: '0.19.15'
+    package_version: '0.20.0'
 
 dsl_definitions:
 
@@ -49,7 +49,7 @@ data_types:
         default: false
       installation_source:
         type: string
-        default: 'https://releases.hashicorp.com/terraform/1.1.4/terraform_1.1.4_linux_amd64.zip'
+        default: 'https://releases.hashicorp.com/terraform/1.4.2/terraform_1.4.2_linux_amd64.zip'
         description: Location to download the Terraform executable binary from. Ignored if 'use_existing' is true.
       plugins:
         # type: list commented for 4.X support
@@ -526,6 +526,14 @@ node_types:
               default: "terraform/deny"
             opa_config:
               default: { get_property: [SELF, opa_config ] }
+        migrate_state:
+          implementation: tf.cloudify_tf.tasks.migrate_state
+          inputs:
+            backend:
+              default: { get_property: [ SELF, resource_config, backend ] }
+            backend_config:
+              type: dict
+              default: {}
 
 relationships:
 
@@ -617,4 +625,44 @@ workflows:
               if it has override values it will take them
             Note about enable property it is not considered here as it is enabled by default
         type: cloudify.types.terraform.infracost
+        default: {}
+
+  migrate_state:
+    # Usage: cfy executions start migrate_state -d [DEPLOYMENT_ID] -p params.yaml
+    ##########################################################################
+    # # params.yaml:
+    # node_ids:
+    #   - cloud_resources
+    # backend:
+    #   name: s3
+    #   options:
+    #     bucket: cybl-2014
+    #     key: t2
+    #     region: var.aws_region
+    #     access_key: var.access_key
+    #     secret_key: var.secret_key
+    # backend_config:
+    #   bucket: cybl-2014
+    #   key: t2
+    #   region: us-east-2
+    #   access_key: { get_secret: aws_access_key_id }
+    #   secret_key: { get_secret: aws_secret_access_key }
+    mapping: tf.cloudify_tf.workflows.migrate_state
+    parameters:
+      <<: *terraform_workflow_params
+      backend:
+        description: >
+          A backend config as may be provided in the node template properties.
+          For example, for azurerm:
+          name: azurerm
+          options:
+            storage_account_name: mysa
+            container_name: mycontainer
+            key: mykey.tfstate
+            resource_group_name: myrg
+        type: cloudify.types.terraform.Backend
+      backend_config:
+        type: dict
+        description: |
+          Key, value pairs that will be passed to init as the args terraform init -backend-config="key=value".
         default: {}

@@ -16,6 +16,7 @@
 import os
 import sys
 
+from deepdiff import DeepDiff
 from cloudify.decorators import operation
 from cloudify import ctx as ctx_from_imports
 from cloudify.utils import exception_to_error_cause
@@ -173,14 +174,35 @@ def apply(ctx, tf, force=False, **kwargs):
         _apply(tf, old_plan, force)
 
 
+@operation
+@with_terraform
+def migrate_state(ctx, tf, backend, backend_config, **_):
+    name = backend.get('name')
+    options = backend.get('options')
+    credentials = backend.get('credentials', {})
+    if credentials:
+        ctx.logger.info('Credentials are not used in migrate-state.')
+    tf.migrate_state(name, options, backend_config)
+    resource_config = utils.get_resource_config()
+    resource_config.update({'backend': backend})
+    utils.update_resource_config(resource_config)
+
+
 class FailedPlanValidation(NonRecoverableError):
     pass
 
 
-def compare_plan_results(new_plan, old_plan, force):
-    if old_plan != new_plan:
-        ctx_from_imports.logger.debug('New plan and old plan diff {}'.format(
-            set(old_plan) ^ set(new_plan)))
+def compare_plan_results(new_plan, old_plan):
+
+    left = sorted(old_plan.get('resource_changes', []),
+                  key=lambda d: d['address'])
+    right = sorted(new_plan.get('resource_changes', []),
+                   key=lambda d: d['address'])
+
+    diff = DeepDiff(left, right)
+    if diff:
+        ctx_from_imports.logger.info(
+            'Old plan and new plan diff {}'.format(diff))
         raise FailedPlanValidation(
             'The new plan differs from the old plan. '
             'Please Rerun plan workflow before executing apply worfklow.')
@@ -193,7 +215,7 @@ def _apply(tf, old_plan=None, force=False):
             tf.run_terratag()
         if old_plan and not force:
             new_plan = tf.plan_and_show()
-            compare_plan_results(new_plan, old_plan, force)
+            compare_plan_results(new_plan, old_plan)
         if not force:
             tf.check_tflint()
             tf.check_tfsec()

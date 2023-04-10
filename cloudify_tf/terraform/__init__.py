@@ -310,8 +310,7 @@ class Terraform(CliTool):
         json_result, _ = self.plan_and_show_two_formats()
         with tempfile.NamedTemporaryFile(
                 'w',
-                suffix='.json',
-                delete=delete_debug()) as plan_file:
+                suffix='.json') as plan_file:
             plan_file.write(json.dumps(json_result))
             yield plan_file.name
 
@@ -389,8 +388,10 @@ class Terraform(CliTool):
     def tfvars(self, value):
         self._tfvars = value
 
-    def init(self, command_line_args=None):
-        cmdline = ['init', '-no-color', '-input=false']
+    def init(self, command_line_args=None, prefix=None, no_input=True):
+        cmdline = ['init', '-no-color']
+        if no_input:
+            cmdline.append('-input=false')
         if self.plugins_dir:
             cmdline.append('--plugin-dir=%s' % self.plugins_dir)
         if self.provider_upgrade:
@@ -398,8 +399,25 @@ class Terraform(CliTool):
         command = self._tf_command(cmdline)
         if command_line_args:
             command.extend(command_line_args)
+        if prefix:
+            command[:0] = prefix
         with self.runtime_file(command):
             return self.execute(command)
+
+    def migrate_state(self, name, options, backend_config):
+        migrate_args = []
+        answer_yes = ['echo', 'yes', '|']
+        self._backend = {
+            'name': name,
+            'options': options,
+        }
+        self.put_backend()
+        for key, value in backend_config.items():
+            migrate_args.append(
+                '-backend-config="{key}={value}"'.format(
+                    key=key, value=value))
+        migrate_args.append('-migrate-state')
+        self.init(migrate_args, answer_yes, no_input=False)
 
     def destroy(self):
         command = self._tf_command(['destroy',
@@ -493,7 +511,7 @@ class Terraform(CliTool):
         Execute terraform plan,
         then terraform show on the generated tfplan file
         """
-        with tempfile.NamedTemporaryFile(delete=delete_debug()) as plan_file:
+        with tempfile.NamedTemporaryFile() as plan_file:
             self.plan(plan_file.name)
             json_result = self.show(plan_file.name)
             plain_text_result = self.show_plain_text(plan_file.name)
@@ -505,7 +523,7 @@ class Terraform(CliTool):
         then terraform show on the generated tfplan file
         """
         status_problems = []
-        with tempfile.NamedTemporaryFile(delete=delete_debug()) as plan_file:
+        with tempfile.NamedTemporaryFile() as plan_file:
             self.plan(plan_file.name)
             plan = self.show(plan_file.name)
             self.refresh()
