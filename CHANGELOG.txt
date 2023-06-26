@@ -1,3 +1,4 @@
+0.20.2: Rerelease with 7.X dependencies.
 0.20.1: Update hidden log keys.
 0.20.0:
   - CYBL-2014 Support backend migration from local to hosted.
