@@ -2,355 +2,209 @@ plugins:
   tf:
     executor: central_deployment_agent
     package_name: cloudify-terraform-plugin
-    package_version: '0.20.2'
-
+    package_version: 0.20.3
 dsl_definitions:
-
-  terraform_config: &terraform_config
-    terraform_config:
+  terraform_config:
+    terraform_config: &id001
       type: cloudify.types.terraform.DirectoryConfig
-      description: Terraform directories for executions.
       required: false
-
 data_types:
-
   cloudify.types.terraform.DirectoryConfig:
     properties:
       executable_path:
         type: string
-        description: The path to the terraform binary executable.
         required: false
       storage_path:
         type: string
-        description: >
-          Directory to store downloaded Terraform templates. The directory must
-          either already exist and be writable by 'cfyuser', or alternatively
-          be create-able by 'cfyuser'.
-          The default is an empty string, which prompts the plugin to use the OS
-          temporary directory.
-          Update 0.13.5: DEPRECATED.
         required: false
       plugins_dir:
         type: string
-        description: >
-          Location where Terraform plugins are located. If a value is provided, then
-          the Terraform plugin uses '--plugin-dir' with that value, ensuring that
-          no plugins are downloaded on-the-fly, for increased stability.
-          If a value is not provided, plugins will be downloaded on-the-fly. This is
-          not recommended in production environments.
-          Update 0.13.5: DEPRECATED.
         required: false
-
   cloudify.types.terraform.InstallConfig:
     properties:
       use_existing_resource:
         type: boolean
-        description: If true, use an existing Terraform installation rather than installing it
         default: false
       installation_source:
         type: string
-        default: 'https://releases.hashicorp.com/terraform/1.4.2/terraform_1.4.2_linux_amd64.zip'
-        description: Location to download the Terraform executable binary from. Ignored if 'use_existing' is true.
+        default: https://releases.hashicorp.com/terraform/1.4.2/terraform_1.4.2_linux_amd64.zip
       plugins:
-        # type: list commented for 4.X support
         default: {}
-        description: List of plugins to download and install.
-
   cloudify.types.terraform.Backend:
     properties:
       name:
         type: string
-        description: Some name.
-        required: False
+        required: false
       options:
-        description: Should be a dictionary of key/values.
-        required: False
+        required: false
       credentials:
-        description: Should be a dictionary of environment variables to export during execution.
-        required: False
-
+        required: false
   cloudify.types.terraform.Provider:
     properties:
       filename:
         type: string
-        description: Some name.
-        required: False
+        required: false
         default: provider.tf
       providers:
         type: list
-        description: "A list of providers with { name: string, options: dict } structure"
-        required: False
-
+        required: false
   cloudify.types.terraform.RequiredProviders:
     properties:
       filename:
         type: string
-        description: Some name.
-        required: False
+        required: false
         default: versions.tf.json
       required_providers:
         type: dict
-        description: "A dict of required providers"
-        required: False
-
+        required: false
   cloudify.types.terraform.SourceSpecification:
     properties:
       location:
         type: string
-        description: >
-          Path or URL to the ZIP file containing the Terraform project.
-          If this is a path, then it must be relative to the blueprint's root.
         required: true
       username:
         type: string
-        description: >
-          Username to authenticate with
         required: false
       password:
         type: string
-        description: >
-          Password to authenticate with
         required: false
-
   cloudify.types.terraform.RootModule:
     properties:
       source:
         type: cloudify.types.terraform.SourceSpecification
-        description: >
-          Specification of Terraform module's source.
         required: true
       source_path:
         type: string
-        description: The path within the source property, where the terraform files may be found.
         default: ''
       backend:
         type: cloudify.types.terraform.Backend
-        description: >
-          If a backend is not defined in source,
-          and you want to use a specific backend, define that here.
         default: {}
       provider:
         type: cloudify.types.terraform.Provider
-        description: >
-          If a provider is not defined in source,
-          and you want to use a specific provider, define that here in a list.
         default: {}
       required_providers:
         type: cloudify.types.terraform.RequiredProviders
-        description: >
-          If required providers are not defined in source,
-          and you want to use a specific provider, define that here in a list.
-        default: { }
+        default: {}
       variables:
-        description: A dictionary of variables.
         required: false
         default: {}
       environment_variables:
-        description: A dictionary of environment variables.
         required: false
         default: {}
       flags_override:
         type: list
-        description: |
-          If you wish to add or modify flags, configure here.
-          # A list of flag elements. Strings will be appended to the command.
-          # Dicts will be translated to bash key=vars.
-          # For example, "{'loglevel': 'debug'}", becomes "--loglevel=debug".
         default: []
       log_stdout:
         type: boolean
         default: true
-        description: Set to false, if you wish to suppress stdout logging for apply and plan commands.
       tfvars:
         type: string
-        description: file Name .tfvars
         required: false
       store_output_secrets:
         type: dict
-        description: |
-          add/update secrets from terraform senstive outputs.
-          should be in this format
-          terraform_output_name: secrets_to_created_or_updated
         required: false
       obfuscate_sensitive:
         type: boolean
         default: false
-
-
   cloudify.types.terraform.tfsec:
     properties:
       installation_source:
         type: string
-        description: The URL to download the tfsec binary from.
         required: false
-        default: 'https://github.com/aquasecurity/tfsec/releases/download/v1.1.3/tfsec-linux-amd64'
+        default: https://github.com/aquasecurity/tfsec/releases/download/v1.1.3/tfsec-linux-amd64
       executable_path:
         type: string
-        description: If the binary is located on the file system, this is the path on the file system.
         required: false
       config:
-        description:
-          The tfsec config file can override various tfsec configurations.
         required: false
       flags_override:
         type: list
-        description: 'tfsec can by run with no arguments and will act on the current folder.
-          For a richer experience, there are many additional command line arguments that you can make use of.
-          For example: [ "debug", "run-statistics"] (without --)'
-        default: [soft_fail]
+        default:
+          - soft_fail
         required: false
       enable:
         type: boolean
         default: false
-
   cloudify.types.terraform.opa:
     properties:
       installation_source:
         type: string
-        description: The URL to download the OPA binary from.
         required: false
-        default: 'https://github.com/open-policy-agent/opa/releases/download/v0.47.4/opa_linux_amd64_static'
+        default: https://github.com/open-policy-agent/opa/releases/download/v0.47.4/opa_linux_amd64_static
       executable_path:
         type: string
-        description: Path to an existing OPA binary on the system, if you prefer to use an existing installation.
         required: false
       config:
-        description:
-          OPA configuration file to override any default OPA behavior.
         required: false
       policy_bundles:
-        description: 'The policy bundles to use with OPA exec. This should be a list of dictionaries with location, name, and username/password (optional) keys. Policy bundles should be provided as ZIP archives.'
         required: false
       flags_override:
         type: list
-        description: 'OPA exec runs with the --bundle and --decision arguments.
-        Additional CLI flags can be specified here. This should be unnecessary,
-        as --bundle and --decision should cover all use cases.'
         required: false
       enable:
         type: boolean
         default: false
-
   cloudify.types.terraform.tflint:
     properties:
       installation_source:
         type: string
-        description: The URL to download the tflint binary from.
-        default: 'https://github.com/terraform-linters/tflint/releases/download/v0.34.1/tflint_linux_amd64.zip'
+        default: https://github.com/terraform-linters/tflint/releases/download/v0.34.1/tflint_linux_amd64.zip
         required: false
       executable_path:
         type: string
-        description: If the binary is located on the file system, this is the path on the file system.
         required: false
       config:
-        description: |
-          Configuration for tflint. It can be a list of strings or a list of dicts.
-          # If a list of dicts are provided,
-          # they should be in a format: type_name, option_name, option_value.
-          # This will be translated to HCL.
-          # For example, this dict:
-          #   - type_name: plugin
-          #     option_name: foo
-          #     option_value:
-          #       enabled: true
-          #       version: "0.1.0"
-          #       source: "github.com/org/tflint-ruleset-foo"
-          # ...will be translated to:
-          #   plugin "foo" {
-          #       enabled = true
-          #       version = "0.1.0"
-          #       source = "github.com/org/tflint-ruleset-foo"
-          #   }
-          # This is also useful for configuring rules, for example:
-          #   - type_name: rule
-          #     option_name: aws_instance_invalid_type
-          #     option_value:
-          #       enabled: true
-          # ...becomes:
-          #   rule "aws_instance_invalid_type" {
-          #     enabled = true
-          #   }
-          # If "options" is not provided, the result will be a block like this:
-          #   config {
-          #     module = true
-          #   }
         required: false
       flags_override:
         type: list
-        description: |
-          The plugin has its own internal logic for appending flags to the tflint command.
-          However, if you wish to add or modify flags, configure here.
-          # A list of flag elements. Strings will be appended to the command.
-          # Dicts will be translated to bash key=vars.
-          # For example, "{'loglevel': 'debug'}", becomes "--loglevel=debug".
         default:
-          - {'loglevel': 'debug'}
+          - loglevel: debug
         required: false
       env:
         type: dict
-        description: |
-          Additional env vars for duration of tflint executions,
-          which are not part of the Terraform environment variables set.
-          This is a subset.
         required: false
       enable:
         type: boolean
         default: false
-
   cloudify.types.terraform.terratag:
     properties:
       installation_source:
         type: string
-        description: The URL to download the terratag binary from.
-        default: 'https://github.com/env0/terratag/releases/download/v0.1.35/terratag_0.1.35_linux_amd64.tar.gz'
+        default: https://github.com/env0/terratag/releases/download/v0.1.35/terratag_0.1.35_linux_amd64.tar.gz
         required: false
       executable_path:
         type: string
-        description: If the binary is located on the file system, this is the path on the file system.
         required: false
       tags:
         type: dict
-        description: # For example: {'id': 'abc', 'user_name': 'my_name'}
         required: false
         default: {}
       flags_override:
         type: list
         required: false
-        description: |
-         Optional CLI flags: dir=<path>, skipTerratagFiles=false, verbose=true, rename=false, filter=<regular expression>
-         For example: flags_override:
-          - verbose: True
-          - rename: False  (default)
-          - filter: "aws_vpc"'
       enable:
         type: boolean
         default: false
-
   cloudify.types.terraform.infracost:
     properties:
       installation_source:
         type: string
-        description: The URL to download the infracost binary from.
-        default: 'https://github.com/infracost/infracost/releases/download/v0.10.8/infracost-linux-amd64.tar.gz'
+        default: https://github.com/infracost/infracost/releases/download/v0.10.8/infracost-linux-amd64.tar.gz
         required: false
       executable_path:
         type: string
-        description: If the binary is located on the file system, this is the path on the file system.
         required: false
       api_key:
         type: string
-        description: free API key used to retrieve prices from infracost Cloud Pricing API.
         default: ''
       enable:
         type: boolean
         default: false
-
 node_types:
-  # Represents a Terraform installation.
   cloudify.nodes.terraform:
     derived_from: cloudify.nodes.SoftwareComponent
     properties:
-      <<: *terraform_config
+      terraform_config: *id001
       resource_config:
         type: cloudify.types.terraform.InstallConfig
         required: true
@@ -360,8 +214,6 @@ node_types:
           implementation: tf.cloudify_tf.tasks.install
         delete:
           implementation: tf.cloudify_tf.tasks.uninstall
-
-  # Represents a Terraform module.
   cloudify.nodes.terraform.Module:
     derived_from: cloudify.nodes.ApplicationModule
     properties:
@@ -370,23 +222,18 @@ node_types:
         required: true
       max_runtime_property_size:
         type: integer
-        description: The maximum terraform source size that you want us to store in the runtime properties. Protect your manager.
         default: 1000000
       max_stored_filesize:
         type: integer
-        description: The maximum file size that you want us to store in the rest service. Protect your manager.
         default: 1000000
       store_plugins_dir:
         type: boolean
-        description: Whether to store terraform binary plugins. Protect your manager.
         default: false
       provider_upgrade:
         type: boolean
-        description: Whether to add "--upgrade" to init command.
         default: false
       general_executor_process:
         type: dict
-        description: Additional keyword args to send the the general executor process argument.
         default:
           max_sleep_time: 300
       tflint_config:
@@ -414,37 +261,24 @@ node_types:
           implementation: tf.cloudify_tf.tasks.destroy
         pull:
           implementation: tf.cloudify_tf.tasks.state_pull
-        heal: &terraform_heal
-          # Reloads the Terraform template. By default, the template will be
-          # read from the last location it was loaded from.
-          # This can be overridden by specifying the 'source' input.
+        heal:
           implementation: tf.cloudify_tf.tasks.reload_template
-        update: &terraform_reload
-          <<: *terraform_heal
+        update:
+          implementation: tf.cloudify_tf.tasks.reload_template
           inputs:
-            source:
-              description: >
-                URL or path to a ZIP/tar.gz file or a Git repository to obtain
-                new module source from. If omitted, then the module is reloaded
-                from its last location.
+            source: &id002
               type: string
-              default: { get_attribute: [ SELF, last_source_location ] }
-            source_path:
+              default: { get_attribute: [SELF, last_source_location] }
+            source_path: &id003
               type: string
-              description: The path within the source property, where the terraform files may be found.
-              default: { get_property: [ SELF, resource_config, source_path ] }
-            variables:
+              default: { get_property: [SELF, resource_config, source_path] }
+            variables: &id004
               type: dict
-              description: Variables override.
-              default: { get_property: [ SELF, resource_config, variables ] }
-            environment_variables:
+              default: { get_property: [SELF, resource_config, variables] }
+            environment_variables: &id005
               type: dict
-              description: Environment variables override.
-              default: { get_property: [ SELF, resource_config, environment_variables ] }
-            destroy_previous:
-              description: >
-                If true, then the plugin destroys the existing Terraform
-                topology before applying the new one.
+              default: { get_property: [SELF, resource_config, environment_variables] }
+            destroy_previous: &id006
               type: boolean
               default: false
         check_drift:
@@ -456,228 +290,210 @@ node_types:
           implementation: tf.cloudify_tf.tasks.plan
           inputs:
             source:
-              default: { get_property: [SELF, resource_config, source ] }
+              default: { get_property: [SELF, resource_config, source] }
             source_path:
-              default: { get_property: [SELF, resource_config, source_path ] }
+              default: { get_property: [SELF, resource_config, source_path] }
             force:
               default: false
         tfsec:
           implementation: tf.cloudify_tf.tasks.tfsec
           inputs:
             tfsec_config:
-              default: { get_property: [SELF, tfsec_config ] }
+              default: { get_property: [SELF, tfsec_config] }
         tflint:
           implementation: tf.cloudify_tf.tasks.tflint
           inputs:
             tflint_config:
-              default: { get_property: [ SELF, tflint_config ] }
+              default: { get_property: [SELF, tflint_config] }
         terratag:
           implementation: tf.cloudify_tf.tasks.terratag
           inputs:
             terratag_config:
-              default: { get_property: [ SELF, terratag_config ] }
+              default: { get_property: [SELF, terratag_config] }
         reload:
-          <<: *terraform_reload
+          implementation: tf.cloudify_tf.tasks.reload_template
+          inputs:
+            source: *id002
+            source_path: *id003
+            variables: *id004
+            environment_variables: *id005
+            destroy_previous: *id006
         refresh:
-          # Refreshes Terraform's state.
           implementation: tf.cloudify_tf.tasks.state_pull
         import_resource:
-          # import terraform resource given address in template and id from provider.
           implementation: tf.cloudify_tf.tasks.import_resource
           inputs:
             source:
-              description: >
-                URL or path to a ZIP/tar.gz file or a Git repository to obtain
-                new module source from. If omitted, then the module is reloaded
-                from its last location.
               type: string
-              default: { get_attribute: [ SELF, last_source_location ] }
+              default: { get_attribute: [SELF, last_source_location] }
             source_path:
               type: string
-              description: The path within the source property, where the terraform files may be found.
-              default: { get_property: [ SELF, resource_config, source_path ] }
+              default: { get_property: [SELF, resource_config, source_path] }
             variables:
               type: dict
-              description: Variables override.
               default: {}
             environment_variables:
               type: dict
-              description: Environment variables override.
               default: {}
             resource_address:
-              description: >
-                the address to import the resource to inside terraform module.
               type: string
               default: ''
             resource_id:
-              description: >
-                resource-specific ID to identify that resource being imported.
               type: string
               default: ''
         infracost:
           implementation: tf.cloudify_tf.tasks.infracost
           inputs:
             infracost_config:
-              default: { get_property: [ SELF, infracost_config ] }
+              default: { get_property: [SELF, infracost_config] }
         opa:
           implementation: tf.cloudify_tf.tasks.evaluate_opa_policy
           inputs:
             decision:
-              default: "terraform/deny"
+              default: terraform/deny
             opa_config:
-              default: { get_property: [SELF, opa_config ] }
+              default: { get_property: [SELF, opa_config] }
         migrate_state:
           implementation: tf.cloudify_tf.tasks.migrate_state
           inputs:
             backend:
-              default: { get_property: [ SELF, resource_config, backend ] }
+              default: { get_property: [SELF, resource_config, backend] }
             backend_config:
               type: dict
               default: {}
-
 relationships:
-
   cloudify.relationships.terraform.run_on_host:
     derived_from: cloudify.relationships.connected_to
     source_interfaces:
       cloudify.interfaces.relationship_lifecycle:
         preconfigure:
           implementation: tf.cloudify_tf.tasks.set_directory_config
-
   cloudify.terraform.relationships.run_on_host:
     derived_from: cloudify.relationships.terraform.run_on_host
-
 workflows:
-
   refresh_terraform_resources:
     mapping: tf.cloudify_tf.workflows.refresh_resources
-    parameters: &terraform_workflow_params
-      node_instance_ids:
+    availability_rules:
+      node_instances_active:
+        - all
+        - partial
+      node_types_required:
+        - cloudify.nodes.terraform.Module
+    parameters:
+      node_instance_ids: &id007
         type: list
         default: []
-        description: |
-          List of node instance ID's to refresh for.
-      node_ids:
+      node_ids: &id008
         type: list
         default: []
-        description: |
-          List of node templates to refresh for.
-
   terraform_plan:
     mapping: tf.cloudify_tf.workflows.terraform_plan
-    parameters: &terraform_plan_params
-      <<: *terraform_workflow_params
-      source:
-        # String or Dict
+    availability_rules:
+      node_instances_active:
+        - all
+        - partial
+      node_types_required:
+        - cloudify.nodes.terraform.Module
+    parameters:
+      node_instance_ids: *id007
+      node_ids: *id008
+      source: &id009
         default: ''
-      source_path:
+      source_path: &id010
         type: string
         default: ''
-      variables:
+      variables: &id011
         type: dict
         default: {}
-      environment_variables:
+      environment_variables: &id012
         type: dict
         default: {}
-
   reload_terraform_template:
     mapping: tf.cloudify_tf.workflows.reload_resources
-    parameters: &terraform_reload_params
-      <<: *terraform_plan_params
+    availability_rules:
+      node_instances_active:
+        - all
+        - partial
+      node_types_required:
+        - cloudify.nodes.terraform.Module
+    parameters:
+      node_instance_ids: *id007
+      node_ids: *id008
+      source: *id009
+      source_path: *id010
+      variables: *id011
+      environment_variables: *id012
       destroy_previous:
         type: boolean
         default: false
       force:
         type: boolean
-        description: Force apply without matching previous plan.
         default: false
-
   update_terraform_binary:
     mapping: tf.cloudify_tf.workflows.update_terraform_binary
+    availability_rules:
+      node_instances_active:
+        - all
+        - partial
+      node_types_required:
+        - cloudify.nodes.terraform
     parameters:
-      <<: *terraform_workflow_params
+      node_instance_ids: *id007
+      node_ids: *id008
       installation_source:
         type: string
-        description: The URL to downlowd the new binary from.
-
   import_terraform_resource:
     mapping: tf.cloudify_tf.workflows.import_resource
+    availability_rules:
+      node_instances_active:
+        - all
+        - partial
+      node_types_required:
+        - cloudify.nodes.terraform.Module
     parameters:
-      <<: *terraform_plan_params
+      node_instance_ids: *id007
+      node_ids: *id008
+      source: *id009
+      source_path: *id010
+      variables: *id011
+      environment_variables: *id012
       resource_address:
-        description: >
-          the address to import the resource to inside terraform module.
         type: string
       resource_id:
-        description: >
-          resource-specific ID to identify that resource being imported.
         type: string
-
   run_infracost:
     mapping: tf.cloudify_tf.workflows.run_infracost
+    availability_rules:
+      node_instances_active:
+        - all
+        - partial
+      node_types_required:
+        - cloudify.nodes.terraform.Module
     parameters:
-      <<: *terraform_plan_params
+      node_instance_ids: *id007
+      node_ids: *id008
+      source: *id009
+      source_path: *id010
+      variables: *id011
+      environment_variables: *id012
       infracost_config:
-        description: >
-          infracost specific config, the value here could be one of these choices:
-            - `{}`: it will take the values from runtime-properties/properties
-            - default_value: it will check the changes against the runtime-properties/properties
-              if it has override values it will take them
-            Note about enable property it is not considered here as it is enabled by default
         type: cloudify.types.terraform.infracost
         default: {}
-
   migrate_state:
-    # Usage: cfy executions start migrate_state -d [DEPLOYMENT_ID] -p params.yaml
-    ##########################################################################
-    # # params.yaml:
-    # node_ids:
-    #   - cloud_resources
-    # backend:
-    #   name: s3
-    #   options:
-    #     bucket: cybl-2014
-    #     key: t2
-    #     region: var.aws_region
-    #     access_key: var.access_key
-    #     secret_key: var.secret_key
-    # backend_config:
-    #   bucket: cybl-2014
-    #   key: t2
-    #   region: us-east-2
-    #   access_key: { get_secret: aws_access_key_id }
-    #   secret_key: { get_secret: aws_secret_access_key }
     mapping: tf.cloudify_tf.workflows.migrate_state
     parameters:
-      <<: *terraform_workflow_params
+      node_instance_ids: *id007
+      node_ids: *id008
       backend:
-        description: >
-          A backend config as may be provided in the node template properties.
-          For example, for azurerm:
-          name: azurerm
-          options:
-            storage_account_name: mysa
-            container_name: mycontainer
-            key: mykey.tfstate
-            resource_group_name: myrg
         type: cloudify.types.terraform.Backend
       backend_config:
         type: dict
-        description: |
-          Key, value pairs that will be passed to init as the args terraform init -backend-config="key=value".
         default: {}
-
 blueprint_labels:
   obj-type:
     values:
-      - terraform
-
+      - tf
 labels:
   obj-type:
     values:
-      - terraform
-
-resource_tags:
-  tenant: { get_sys: [ tenant, name ] }
-  deployment_id: { get_sys: [ deployment, id ] }
-  owner: { get_sys: [ deployment, owner ] }
+      - tf

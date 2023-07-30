@@ -1,0 +1,17 @@
+diff --git a/setup.py b/setup.py
+index 553e5f5..1530dbf 100644
+--- a/setup.py
++++ b/setup.py
+@@ -39,9 +39,9 @@ setup(
+     install_requires=[
+         "Pathlib",
+         "cloudify-common>=4.5.5",
+-        "networkx==1.9.1",
++        "networkx==2.5.1",
+         "requests>=2.7.0,<3.0",
+         "cloudify-utilities-plugins-sdk>=0.0.118",
+-        'deepdiff==3.3.0',
++        'deepdiff==5.7.0',
+     ]
+ )
+ 
