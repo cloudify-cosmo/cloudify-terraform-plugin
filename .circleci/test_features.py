@@ -65,6 +65,7 @@ def test_cleaner_upper():
 def test_plan_protection(*_, **__):
     with test_cleaner_upper():
         wait_for_workflow(TEST_ID, 'terraform_plan', 300, public_params)
+        time.sleep(10)
         logger.info('Wrap plan for public VM. '
                     'Now we will run reload_terraform_template for private VM '
                     'and it should fail.')
