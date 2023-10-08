@@ -1,3 +1,22 @@
+diff --git a/constraints.txt b/constraints.txt
+index 3db27bc..e69de29 100644
+--- a/constraints.txt
++++ b/constraints.txt
+@@ -1,8 +0,0 @@
+-cloudify-utilities-plugins-sdk>=0.0.93
+-urllib3==1.24.3
+-cryptography>=3.3.2
+-pynacl==1.4.0
+-decorator==4.4.2
+-gitdb>=4.0.1,<5
+-decorator==4.4.2
+-psutil==5.8.0
+diff --git a/examples/blueprint-examples b/examples/blueprint-examples
+--- a/examples/blueprint-examples
++++ b/examples/blueprint-examples
+@@ -1 +1 @@
+-Subproject commit bfa978ff7805a3545bf0e7dccf2988179148567f
++Subproject commit bfa978ff7805a3545bf0e7dccf2988179148567f-dirty
 diff --git a/setup.py b/setup.py
 index 553e5f5..1530dbf 100644
 --- a/setup.py
@@ -14,4 +33,3 @@ index 553e5f5..1530dbf 100644
 +        'deepdiff==5.7.0',
      ]
  )
- 
