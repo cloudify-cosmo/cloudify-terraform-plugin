@@ -18,8 +18,10 @@ from contextlib import contextmanager
 
 from ecosystem_tests.dorkl.constansts import logger
 from ecosystem_tests.dorkl import cleanup_on_failure
-from ecosystem_tests.dorkl.exceptions import EcosystemTestException
-from ecosystem_tests.dorkl.cloudify_api import cloudify_exec, executions_start
+from ecosystem_tests.nerdl.api import (
+    get_node_instance,
+    cleanup_on_failure,
+    list_node_instances)
 
 TEST_ID = environ.get('__ECOSYSTEM_TEST_ID', 'virtual-machine')
 
@@ -78,21 +80,13 @@ def test_runtime_properties():
             errors.append('foo2 instances is not a list.')
         if errors:
             error_messages = '\n'.join(errors)
-            raise EcosystemTestException(
+            raise Exception(
                 'validate_runtime_properties failed because of {}'.format(
                     error_messages))
 
 
-def nodes():
-    return cloudify_exec('cfy nodes list')
-
-
 def node_instances():
-    return cloudify_exec('cfy node-instances list -d {}'.format(TEST_ID))
-
-
-def get_node_instance(name):
-    return cloudify_exec('cfy node-instances get {}'.format(name))
+    return list_node_instances(TEST_ID)
 
 
 def node_instance_by_name(name):
@@ -100,57 +94,3 @@ def node_instance_by_name(name):
         if node_instance['node_id'] == name:
             return get_node_instance(node_instance['id'])
     raise Exception('No node instances found.')
-
-
-#
-# expected_resource_property = {
-#   "foo1": {
-#     "mode": "managed",
-#     "type": "null_resource",
-#     "name": "foo1",
-#     "provider": "provider[\"registry.terraform.io/hashicorp/null\"]",
-#     "instances": [
-#       {
-#         "index_key": 0,
-#         "schema_version": 0,
-#         "attributes": {
-#           "id": "1545022135691623926",
-#           "triggers": {
-#             "cluster_instance_ids": "dummy_id"
-#           }
-#         },
-#         "dependencies": [
-#           "null_resource.foo2"
-#         ]
-#       },
-#       {
-#         "index_key": 1,
-#         "schema_version": 0,
-#         "attributes": {
-#           "id": "7972277428810644674",
-#           "triggers": {
-#             "cluster_instance_ids": "dummy_id"
-#           }
-#         },
-#         "dependencies": [
-#           "null_resource.foo2"
-#         ]
-#       }
-#     ]
-#   },
-#   "foo2": {
-#     "mode": "managed",
-#     "type": "null_resource",
-#     "name": "foo2",
-#     "provider": "provider[\"registry.terraform.io/hashicorp/null\"]",
-#     "instances": [
-#       {
-#         "schema_version": 0,
-#         "attributes": {
-#           "id": "5045861567246471991",
-#           "triggers": None
-#         }
-#       }
-#     ]
-#   }
-# }
