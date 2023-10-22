@@ -488,7 +488,14 @@ class Terraform(CliTool):
         command = self._tf_command(options)
         output = self.execute(command, False)
         if output:
-            return json.loads(output)
+            try:
+                return json.loads(output)
+            except json.JSONDecodeError as e:
+                try:
+                    return json.loads(
+                        '[' + ','.join(output.split('\n')) + ']')
+                except json.JSONDecodeError:
+                    raise e
 
     def show_plain_text(self, plan_file_path=None):
         options = ['show', '-no-color']
