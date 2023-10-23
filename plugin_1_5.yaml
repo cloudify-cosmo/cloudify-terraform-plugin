@@ -2,7 +2,7 @@ plugins:
   tf:
     executor: central_deployment_agent
     package_name: cloudify-terraform-plugin
-    package_version: '0.20.4'
+    package_version: '0.20.5'
 
 dsl_definitions:
 
@@ -49,7 +49,7 @@ data_types:
         default: false
       installation_source:
         type: string
-        default: 'https://releases.hashicorp.com/terraform/1.4.2/terraform_1.4.2_linux_amd64.zip'
+        default: 'https://releases.hashicorp.com/terraform/1.5.7/terraform_1.5.7_linux_amd64.zip'
         description: Location to download the Terraform executable binary from. Ignored if 'use_existing' is true.
       plugins:
         # type: list commented for 4.X support

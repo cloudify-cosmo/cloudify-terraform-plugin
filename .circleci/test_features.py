@@ -30,8 +30,8 @@ from ecosystem_tests.nerdl.api import (
     cleanup_on_failure,
     list_node_instances)
 
-
-TEST_ID = environ.get('__ECOSYSTEM_TEST_ID', 'virtual-machine')
+build = environ.get('CIRCLE_BUILD_NUM')
+TEST_ID = environ.get('__ECOSYSTEM_TEST_ID', 'virtual-machine-{}'.format(build))
 
 source = 'https://github.com/cloudify-community/tf-source/archive/refs/heads/main.zip'   # noqa
 
