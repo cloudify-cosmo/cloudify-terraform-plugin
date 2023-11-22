@@ -1,9 +1,11 @@
 import json
 import shutil
 from os import path
+from time import sleep
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
 
+from cloudify.exceptions import RecoverableError
 from .tools_base import TFTool, TFToolException
 
 
@@ -201,19 +203,25 @@ class TFSec(TFTool):
         }
 
     def execute(self, command, cwd, env, return_output=True, *args, **kwargs):
-        try:
-            self.logger.info('command: {}'.format(command))
-            output = self._execute(
-                command, cwd, env, kwargs, return_output=return_output)
-            self.logger.info('output: {}'.format(output))
-        except Exception:
-            raise TFSecException(
-                'TFsec error. See above log for more information. '
-                'If you are working in a development environment, '
-                'you may run the command, '
-                '"{}" from the directory '
-                '{} in order to replicate the plugin behavior.'.format(
-                    ' '.join(command), self.terraform_root_module))
+        for n in range(0, 10):
+            try:
+                self.logger.info('command: {}'.format(command))
+                output = self._execute(
+                    command, cwd, env, kwargs, return_output=return_output)
+                self.logger.info('output: {}'.format(output))
+            except Exception as e:
+                if 'No such file or directory' in str(e):
+                    if n == 10:
+                        raise RecoverableError(
+                            "tfsec binary is not synced yet")
+                    sleep(10)
+                raise TFSecException(
+                    'TFsec error. See above log for more information. '
+                    'If you are working in a development environment, '
+                    'you may run the command, '
+                    '"{}" from the directory '
+                    '{} in order to replicate the plugin behavior.'.format(
+                        ' '.join(command), self.terraform_root_module))
         return
 
 

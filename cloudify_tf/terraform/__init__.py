@@ -159,13 +159,13 @@ class Terraform(CliTool):
 
     @property
     def backend(self):
-        if self._backend:
+        if self._backend.get('options', {}):
             return utils.create_backend_string(
                 self._backend.get('name'), self._backend.get('options', {}))
 
     @property
     def insecure_backend(self):
-        if self._backend:
+        if self._backend.get('options', {}):
             insecure_backend = utils.convert_secrets(self._backend)
             return utils.create_backend_string(
                 insecure_backend.get('name'),
@@ -173,27 +173,27 @@ class Terraform(CliTool):
 
     @property
     def required_providers(self):
-        if self._required_providers:
+        if self._required_providers.get('required_providers', {}):
             return utils.create_required_providers_string(
-                self._required_providers.get('required_providers'))
+                self._required_providers.get('required_providers', {}))
 
     @property
     def insecure_required_providers(self):
-        if self._required_providers:
+        if self._required_providers.get('required_providers', {}):
             insecure_required_providers = utils.convert_secrets(
                 self._required_providers)
             return utils.create_required_providers_string(
-                insecure_required_providers.get('required_providers'))
+                insecure_required_providers.get('required_providers', {}))
 
     @property
     def provider(self):
-        if self._provider:
+        if self._provider.get('providers', {}):
             return utils.create_provider_string(
                 self._provider.get('providers', {}))
 
     @property
     def insecure_provider(self):
-        if self._provider:
+        if self._provider.get('providers', {}):
             insecure_provider = utils.convert_secrets(
                 self._provider)
             return utils.create_provider_string(

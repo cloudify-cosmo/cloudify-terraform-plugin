@@ -1,10 +1,12 @@
 import json
 import yaml
 from os import path, remove
+from time import sleep
 from pathlib import Path
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
 
+from cloudify.exceptions import RecoverableError
 from cloudify_common_sdk.utils import install_binary
 
 from .tools_base import TFTool, TFToolException
@@ -207,12 +209,12 @@ class Infracost(TFTool):
         command = [self.executable_path, 'breakdown', '--config-file']
         with self.runtime_file() as f:
             root_path = str(Path(self.terraform_root_module).resolve())
-            relative_path = f.replace(root_path, '')
+            root_path = root_path.replace('/.', '')
             self.config = {
                 'version': 0.1,
                 'projects': [{
-                    'path': self.terraform_root_module,
-                    'terraform_var_files': [relative_path],
+                    'path': root_path,
+                    'terraform_var_files': [f],
                     'env': convert_secrets(self.env)
                 }]
             }
@@ -240,17 +242,23 @@ class Infracost(TFTool):
         }
 
     def execute(self, command, cwd, env, return_output=True, *args, **kwargs):
-        try:
-            return self._execute(
-                command, cwd, env, kwargs, return_output=return_output)
-        except Exception:
-            raise InfracostException(
-                'Infracost error. See above log for more information. '
-                'If you are working in a development environment, '
-                'you may run the command, '
-                '"{}" from the directory '
-                '{} in order to replicate the plugin behavior.'.format(
-                    ' '.join(command), self.terraform_root_module))
+        for n in range(0, 10):
+            try:
+                return self._execute(
+                    command, cwd, env, kwargs, return_output=return_output)
+            except Exception as e:
+                if 'No such file or directory' in str(e):
+                    if n == 10:
+                        raise RecoverableError(
+                            "infracost binary is not synced yet")
+                    sleep(10)
+                raise InfracostException(
+                    'Infracost error. See above log for more information. '
+                    'If you are working in a development environment, '
+                    'you may run the command, '
+                    '"{}" from the directory '
+                    '{} in order to replicate the plugin behavior.'.format(
+                        ' '.join(command), self.terraform_root_module))
         return
 
 

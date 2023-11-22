@@ -659,7 +659,7 @@ def get_terraform_source():
     return _yield_terraform_source(material)
 
 
-def update_terraform_source(new_source=None, new_source_path=None):
+def update_terraform_source(new_source=None, new_source_path=None, tf=None):
     """Replace the stored terraform resource template data"""
     if new_source:
         material = update_terraform_source_material(new_source)
@@ -686,6 +686,11 @@ def update_terraform_source(new_source=None, new_source_path=None):
             else:
                 source_tmp_path = new_source.get('location')
             copy_directory(source_tmp_path, node_instance_dir)
+    if tf:
+        # let's update backend and providers files given our props
+        tf.put_backend()
+        tf.put_required_providers()
+        tf.put_provider()
     return node_instance_dir
 
 

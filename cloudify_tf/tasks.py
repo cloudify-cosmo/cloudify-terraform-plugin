@@ -295,7 +295,8 @@ def plan(ctx,
     if source or source_path:
         source = source or resource_config.get('source')
         source_path = source_path or resource_config.get('source_path')
-        tf.root_module = utils.update_terraform_source(source, source_path)
+        tf.root_module = utils.update_terraform_source(source, source_path,
+                                                       tf)
         resource_config.update(
             {
                 'source': source,
@@ -338,7 +339,8 @@ def check_drift(ctx, tf, **_):
         from_inst = utils.get_resource_config(force=False)
         tf.root_module = utils.update_terraform_source(
             from_inst.get('source'),
-            from_inst.get('source_path'))
+            from_inst.get('source_path'),
+            tf)
     _state_pull(tf, update_runtime_props=False)
     if ctx.instance.runtime_properties.get(IS_DRIFTED, False):
         ctx.abort_operation(
@@ -450,7 +452,7 @@ def _reload_template(ctx,
     source = utils.handle_previous_source_format(source)
     if destroy_previous:
         destroy(tf=tf, ctx=ctx)
-    tf.root_module = utils.update_terraform_source(source, source_path)
+    tf.root_module = utils.update_terraform_source(source, source_path, tf)
     old_plan = ctx.instance.runtime_properties.get('plan')
     _apply(tf, old_plan, force)
     resource_config.update(
@@ -641,7 +643,7 @@ def _import_resource(ctx,
         source_path = resource_config.get('source_path')
 
     source = utils.handle_previous_source_format(source)
-    tf.root_module = utils.update_terraform_source(source, source_path)
+    tf.root_module = utils.update_terraform_source(source, source_path, tf)
     resource_config.update(
         {
             'source': source,

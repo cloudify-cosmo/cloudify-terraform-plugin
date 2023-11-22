@@ -1,9 +1,11 @@
 import json
 import shutil
 from os import path
+from time import sleep
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
 
+from cloudify.exceptions import RecoverableError
 from .tools_base import TFTool, TFToolException
 from cloudify_common_sdk.utils import get_node_instance_dir
 
@@ -255,20 +257,26 @@ class Opa(TFTool):
         }
 
     def execute(self, command, cwd, env, return_output=True, *args, **kwargs):
-        try:
-            self.logger.info('command: {}'.format(command))
-            output = self._execute(
-                command, cwd, env, kwargs, return_output=return_output)
-            self.logger.info('output: {}'.format(output))
-            return output
-        except Exception:
-            raise OpaException(
-                'OPA error. See above log for more information. '
-                'If you are working in a development environment, '
-                'you may run the command, '
-                '"{}" from the directory '
-                '{} in order to replicate the plugin behavior.'.format(
-                    ' '.join(command), self.terraform_root_module))
+        for n in range(0, 10):
+            try:
+                self.logger.info('command: {}'.format(command))
+                output = self._execute(
+                    command, cwd, env, kwargs, return_output=return_output)
+                self.logger.info('output: {}'.format(output))
+                return output
+            except Exception as e:
+                if 'No such file or directory' in str(e):
+                    if n == 10:
+                        raise RecoverableError(
+                            "opa binary is not synced yet")
+                    sleep(10)
+                raise OpaException(
+                    'OPA error. See above log for more information. '
+                    'If you are working in a development environment, '
+                    'you may run the command, '
+                    '"{}" from the directory '
+                    '{} in order to replicate the plugin behavior.'.format(
+                        ' '.join(command), self.terraform_root_module))
 
 
 def get_opa_config(node_props, instance_props):

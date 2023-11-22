@@ -2,7 +2,7 @@ plugins:
   tf:
     executor: central_deployment_agent
     package_name: cloudify-terraform-plugin
-    package_version: '0.20.6'
+    package_version: '0.20.7'
 
 dsl_definitions:
 
@@ -331,7 +331,7 @@ data_types:
       installation_source:
         type: string
         description: The URL to download the infracost binary from.
-        default: 'https://github.com/infracost/infracost/releases/download/v0.10.8/infracost-linux-amd64.tar.gz'
+        default: 'https://github.com/infracost/infracost/releases/download/v0.10.30/infracost-linux-amd64.tar.gz'
         required: false
       executable_path:
         type: string
