@@ -13,10 +13,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 
 from cloudify.exceptions import NonRecoverableError
 
 from cloudify_common_sdk import hcl
+from cloudify_common_sdk.utils import run_subprocess
 from cloudify_common_sdk.cli_tool_base import CliTool
 
 
@@ -50,6 +52,24 @@ class TFTool(CliTool):
             args[index + 1] = flags.pop(flag_index + 1)
         args.extend(flags)
         return args
+
+    def _execute(self,
+                 command,
+                 cwd,
+                 env,
+                 additional_args=None,
+                 return_output=True):
+        if not os.access(self.executable_path, os.X_OK):
+            run_subprocess(
+                ['chmod', 'u+x', self.executable_path],
+                self.logger)
+        return run_subprocess(
+            command,
+            self.logger,
+            cwd,
+            env,
+            additional_args,
+            return_output=return_output)
 
 
 class TFToolException(NonRecoverableError):

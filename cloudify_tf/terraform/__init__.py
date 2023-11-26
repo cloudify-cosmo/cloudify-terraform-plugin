@@ -254,6 +254,19 @@ class Terraform(CliTool):
         return_output = return_output if return_output is not None \
             else self._log_stdout
         self.additional_args['log_stdout'] = return_output
+        if not os.access(self.binary_path, os.X_OK):
+            run_subprocess(
+                ['chmod', 'u+x', self.binary_path],
+                self.logger)
+        # look for all providers to make them executable as well
+        providers_path = os.path.join(self.root_module, '.terraform')
+        for things in os.walk(providers_path):
+            for provider_file in things[2]:
+                provider_path = os.path.join(things[0], provider_file)
+                if not os.access(provider_path, os.X_OK):
+                    run_subprocess(
+                        ['chmod', 'u+x', provider_path],
+                        self.logger)
         return run_subprocess(
             command,
             self.logger,

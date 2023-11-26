@@ -1,3 +1,4 @@
+0.20.8: handle permission issues.
 0.20.7: bump infracost version and accommodate infracost config file format changes.
 0.20.6: Improve usage of show that returns list.
 0.20.5: Handle Terraform Multidocument JSON load.
