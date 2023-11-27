@@ -16,6 +16,7 @@
 
 import os
 import re
+import sys
 import pathlib
 from setuptools import setup
 
@@ -28,6 +29,25 @@ def get_version():
         return re.search(r'\d+.\d+.\d+', var).group()
 
 
+install_requires = [
+    'requests>=2.7.0,<3.0',
+    'cloudify-utilities-plugins-sdk>=0.0.129'
+]
+
+if sys.version_info.major == 3 and sys.version_info.minor == 6:
+    install_requires += [
+        'cloudify-common>=4.5.5',
+        'networkx==1.9.1',
+        'deepdiff==3.3.0',
+    ]
+else:
+    install_requires += [
+        'cloudify-common>=7.0.2',
+        'networkx>=3.2.1',
+        'deepdiff==5.7.0',
+    ]
+
+
 setup(
     name='cloudify-terraform-plugin',
     version=get_version(),
@@ -36,12 +56,5 @@ setup(
     description='Enables Support of Terraform',
     packages=['cloudify_tf', 'cloudify_tf/terraform'],
     license='LICENSE',
-    install_requires=[
-        "Pathlib",
-        "cloudify-common>=4.5.5",
-        "networkx==1.9.1",
-        "requests>=2.7.0,<3.0",
-        "cloudify-utilities-plugins-sdk>=0.0.118",
-        'deepdiff==3.3.0',
-    ]
+    install_requires=install_requires
 )
