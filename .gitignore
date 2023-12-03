@@ -172,3 +172,7 @@ local-storage/
 # Wagons
 **/*.wgn
 terraform-bp/*
+cloudify-utilities-plugins-sdk
+fusion-agent
+fusion-common
+fusion-manager

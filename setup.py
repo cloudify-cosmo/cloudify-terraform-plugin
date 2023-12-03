@@ -31,7 +31,7 @@ def get_version():
 
 install_requires = [
     'requests>=2.7.0,<3.0',
-    'cloudify-utilities-plugins-sdk>=0.0.130'
+    'cloudify-utilities-plugins-sdk'
 ]
 
 if sys.version_info.major == 3 and sys.version_info.minor == 6:
@@ -42,8 +42,8 @@ if sys.version_info.major == 3 and sys.version_info.minor == 6:
     ]
 else:
     install_requires += [
-        'cloudify-common>=7.0.2',
-        'networkx>=3.2.1',
+        'fusion-common',
+        'networkx',
         'deepdiff==5.7.0',
     ]
 
