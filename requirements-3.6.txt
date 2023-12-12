@@ -37,7 +37,7 @@ botocore==1.26.10
     # via
     #   boto3
     #   s3transfer
-bottle==0.12.23
+bottle==0.12.25
     # via cloudify-common
 cachetools==4.2.4
     # via google-auth
@@ -54,7 +54,7 @@ charset-normalizer==2.0.12
     # via
     #   aiohttp
     #   requests
-cloudify-common==7.0.2
+cloudify-common==7.0.3
     # via
     #   cloudify-terraform-plugin (setup.py)
     #   cloudify-utilities-plugins-sdk
@@ -74,7 +74,7 @@ deepdiff==3.3.0
     # via cloudify-terraform-plugin (setup.py)
 distro==1.8.0
     # via cloudify-common
-fasteners==0.17.3
+fasteners==0.19
     # via cloudify-common
 frozenlist==1.2.0
     # via
@@ -115,7 +115,7 @@ kubernetes==v26.1.0
     # via cloudify-utilities-plugins-sdk
 markupsafe==2.0.1
     # via jinja2
-msal==1.25.0
+msal==1.26.0
     # via
     #   azure-identity
     #   msal-extensions
@@ -139,13 +139,13 @@ packaging==21.3
     # via cloudify-utilities-plugins-sdk
 paramiko==3.3.1
     # via cloudify-utilities-plugins-sdk
-pika==1.3.0
+pika==1.3.1
     # via cloudify-common
 pkginfo==1.9.6
     # via wagon
 portalocker==2.7.0
     # via msal-extensions
-proxy_tools==0.1.0
+proxy-tools==0.1.0
     # via cloudify-common
 psutil==5.9.6
     # via cloudify-utilities-plugins-sdk
@@ -172,7 +172,7 @@ python-dateutil==2.8.2
     #   adal
     #   botocore
     #   kubernetes
-pytz==2022.2.1
+pytz==2023.3.post1
     # via cloudify-common
 pyyaml==6.0.1
     # via
@@ -194,7 +194,7 @@ requests-oauthlib==1.3.1
     # via
     #   kubernetes
     #   msrest
-requests_toolbelt==0.9.1
+requests-toolbelt==1.0.0
     # via cloudify-common
 rsa==4.9
     # via google-auth
