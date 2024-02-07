@@ -1,3 +1,4 @@
+0.20.10: added .drp folder for truffelhog checker.
 0.20.9: Rebase dependencies.
 0.20.8: handle permission issues.
 0.20.7: bump infracost version and accommodate infracost config file format changes.
