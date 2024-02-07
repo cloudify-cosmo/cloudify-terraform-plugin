@@ -1,0 +1,10 @@
+---
+project_exclusion_list:
+  exclusion_folders:
+    - .drp
+    - .github
+    - examples
+    - cloudify_tf/terraform/tests
+    - cloudify_tf/tests
+  exclusion_file_paths:
+    - Makefile
