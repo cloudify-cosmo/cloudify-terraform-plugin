@@ -457,9 +457,16 @@ class Terraform(CliTool):
 
     def output(self):
         command = self._tf_command(['output', '-json', '-no-color'])
-        returned_output = self.execute(command, False)
-        if returned_output:
-            return json.loads(returned_output)
+        output = self.execute(command, False)
+        if output:
+            try:
+                return json.loads(output)
+            except json.JSONDecodeError as e:
+                try:
+                    return json.loads(
+                        '[' + ','.join(output.split('\n')) + ']')
+                except json.JSONDecodeError:
+                    raise e
 
     def graph(self):
         command = self._tf_command(['graph'])
