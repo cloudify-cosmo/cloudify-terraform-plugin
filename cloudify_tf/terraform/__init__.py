@@ -463,8 +463,9 @@ class Terraform(CliTool):
                 return json.loads(output)
             except json.JSONDecodeError as e:
                 try:
-                    return json.loads(
-                        '[' + ','.join(output.split('\n')) + ']')
+                    cleaned_text = re.sub(r'}\s*?\n\s*?{', '}, {', output)
+                    json_list_text = "[{0}]".format(cleaned_text)
+                    return json.loads(json_list_text)
                 except json.JSONDecodeError:
                     raise e
 
@@ -479,7 +480,16 @@ class Terraform(CliTool):
         # be zero, and pulled_state actually contains a parse-able
         # JSON.
         if pulled_state:
-            return json.loads(pulled_state)
+            try:
+                return json.loads(pulled_state)
+            except json.JSONDecodeError as e:
+                try:
+                    cleaned_text = re.sub(r'}\s*?\n\s*?{', '}, {',
+                                          pulled_state)
+                    json_list_text = "[{0}]".format(cleaned_text)
+                    return json.loads(json_list_text)
+                except json.JSONDecodeError:
+                    raise e
 
     def refresh(self):
         if parse_version(self.terraform_version) >= parse_version("0.15.4"):
