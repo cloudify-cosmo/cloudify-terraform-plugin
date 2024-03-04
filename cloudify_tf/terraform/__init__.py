@@ -466,9 +466,17 @@ class Terraform(CliTool):
 
     def output(self):
         command = self._tf_command(['output', '-json', '-no-color'])
-        returned_output = self.execute(command, False)
-        if returned_output:
-            return json.loads(returned_output)
+        output = self.execute(command, False)
+        if output:
+            try:
+                return json.loads(output)
+            except json.JSONDecodeError as e:
+                try:
+                    cleaned_text = re.sub(r'}\s*?\n\s*?{', '}, {', output)
+                    json_list_text = "[{0}]".format(cleaned_text)
+                    return json.loads(json_list_text)
+                except json.JSONDecodeError:
+                    raise e
 
     def graph(self):
         command = self._tf_command(['graph'])
@@ -481,7 +489,16 @@ class Terraform(CliTool):
         # be zero, and pulled_state actually contains a parse-able
         # JSON.
         if pulled_state:
-            return json.loads(pulled_state)
+            try:
+                return json.loads(pulled_state)
+            except json.JSONDecodeError as e:
+                try:
+                    cleaned_text = re.sub(r'}\s*?\n\s*?{', '}, {',
+                                          pulled_state)
+                    json_list_text = "[{0}]".format(cleaned_text)
+                    return json.loads(json_list_text)
+                except json.JSONDecodeError:
+                    raise e
 
     def refresh(self):
         if parse_version(self.terraform_version) >= parse_version("0.15.4"):

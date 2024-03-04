@@ -1,4 +1,5 @@
-0.10.11:
+0.20.11:
+  - Try to handle invalid TF json.
   - Handle out of memory in kubernetes manager.
   - Handle TF outputs that are lists.
 0.20.10: added .drp folder for truffelhog checker.

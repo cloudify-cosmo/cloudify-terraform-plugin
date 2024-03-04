@@ -895,12 +895,20 @@ def store_sensitive_properties(rest_client, output):
 def refresh_resources_properties(state, output, update_runtime_props=True):
     """Store all the resources (state and output) that we created as JSON
        in the context."""
+
+    def process_module_state(module_state, resources):
+        for resource in module_state.get('resources', []):
+            resources[resource[NAME]] = resource
+        for module in module_state.get('modules', []):
+            for name, definition in module.get('resources', {}).items():
+                resources[name] = definition
+
     resources = {}
-    for resource in state.get('resources', []):
-        resources[resource[NAME]] = resource
-    for module in state.get('modules', []):
-        for name, definition in module.get('resources', {}).items():
-            resources[name] = definition
+    if isinstance(state, list):
+        for module_state in state:
+            process_module_state(module_state, resources)
+    else:
+        process_module_state(state, resources)
     if update_runtime_props:
         ctx.instance.runtime_properties['resources'] = resources
     # Duplicate for backward compatibility.
