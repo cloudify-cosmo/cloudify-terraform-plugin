@@ -856,17 +856,26 @@ def create_provider_string(items):
 
 def filter_state_for_sensitive_properties(output):
     resource_config = get_resource_config(target=False)
+    obfuscate_sensitive = resource_config.get('obfuscate_sensitive')
     ret = dict()
-    for k in output.keys():
-        is_sensitive_ouput = output[k].get("sensitive", False)
-        obfuscate_sensitive = resource_config.get('obfuscate_sensitive')
+
+    def _filter_state_for_sensitive_props(k, _output):
+        is_sensitive_ouput = _output[k].get("sensitive", False)
         is_in_store_output_secrets = \
             k in resource_config.get('store_output_secrets', {})
-        if (is_sensitive_ouput and obfuscate_sensitive) or \
-                (is_sensitive_ouput and is_in_store_output_secrets):
+        if (is_sensitive_ouput and obfuscate_sensitive) or (
+                is_sensitive_ouput and is_in_store_output_secrets):
             ret[k] = "*" * 10
         else:
-            ret[k] = output[k]
+            ret[k] = _output[k]
+
+    if isinstance(output, list):
+        for _sub_output in output:
+            for k in _sub_output.keys():
+                _filter_state_for_sensitive_props(k, _sub_output)
+    elif isinstance(output, dict):
+        for k in output.keys():
+            _filter_state_for_sensitive_props(k, output)
     return ret
 
 
@@ -886,12 +895,20 @@ def store_sensitive_properties(rest_client, output):
 def refresh_resources_properties(state, output, update_runtime_props=True):
     """Store all the resources (state and output) that we created as JSON
        in the context."""
+
+    def process_module_state(module_state, resources):
+        for resource in module_state.get('resources', []):
+            resources[resource[NAME]] = resource
+        for module in module_state.get('modules', []):
+            for name, definition in module.get('resources', {}).items():
+                resources[name] = definition
+
     resources = {}
-    for resource in state.get('resources', []):
-        resources[resource[NAME]] = resource
-    for module in state.get('modules', []):
-        for name, definition in module.get('resources', {}).items():
-            resources[name] = definition
+    if isinstance(state, list):
+        for module_state in state:
+            process_module_state(module_state, resources)
+    else:
+        process_module_state(state, resources)
     if update_runtime_props:
         ctx.instance.runtime_properties['resources'] = resources
     # Duplicate for backward compatibility.
