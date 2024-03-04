@@ -1,5 +1,4 @@
 ########
-########
 # Copyright (c) 2018-2020 GigaSpaces Technologies Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,6 +32,7 @@ from cloudify_common_sdk.utils import (
     run_subprocess,
     update_dict_values
 )
+from script_runner.tasks import ProcessException
 
 from .. import utils
 
@@ -267,13 +267,22 @@ class Terraform(CliTool):
                     run_subprocess(
                         ['chmod', 'u+x', provider_path],
                         self.logger)
-        return run_subprocess(
-            command,
-            self.logger,
-            self.root_module,
-            self.insecure_env,
-            self.additional_args,
-            return_output=return_output)
+        try:
+            return run_subprocess(
+                command,
+                self.logger,
+                self.root_module,
+                self.insecure_env,
+                self.additional_args,
+                return_output=return_output)
+        except ProcessException as e:
+            if e.exit_code == 2 and \
+                'panic: runtime error: invalid memory address ' \
+                'or nil pointer dereference' in e.stderr:
+            raise cfy_exc.OperationRetry(
+                f'Failed to call: {e.command}. '
+                f'A temporary error was raised: {e.stderr}.')
+
 
     def _tf_command(self, args):
         cmd = [self.binary_path]

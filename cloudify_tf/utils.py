@@ -856,17 +856,26 @@ def create_provider_string(items):
 
 def filter_state_for_sensitive_properties(output):
     resource_config = get_resource_config(target=False)
+    obfuscate_sensitive = resource_config.get('obfuscate_sensitive')
     ret = dict()
-    for k in output.keys():
-        is_sensitive_ouput = output[k].get("sensitive", False)
-        obfuscate_sensitive = resource_config.get('obfuscate_sensitive')
+
+    def _filter_state_for_sensitive_props(k, _output):
+        is_sensitive_ouput = _output[k].get("sensitive", False)
         is_in_store_output_secrets = \
             k in resource_config.get('store_output_secrets', {})
-        if (is_sensitive_ouput and obfuscate_sensitive) or \
-                (is_sensitive_ouput and is_in_store_output_secrets):
+        if (is_sensitive_ouput and obfuscate_sensitive) or (
+                is_sensitive_ouput and is_in_store_output_secrets):
             ret[k] = "*" * 10
         else:
-            ret[k] = output[k]
+            ret[k] = _output[k]
+
+    if isinstance(output, list):
+        for _sub_output in output:
+            for k in _sub_output.keys():
+                _filter_state_for_sensitive_props(k, _sub_output)
+    elif isinstance(output, dict):
+        for k in output.keys():
+            _filter_state_for_sensitive_props(k, output)
     return ret
 
 
