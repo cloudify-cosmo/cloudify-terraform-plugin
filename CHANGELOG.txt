@@ -1,3 +1,4 @@
+0.20.12: blackduck.
 0.20.11:
   - Try to handle invalid TF json.
   - Handle out of memory in kubernetes manager.
