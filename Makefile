@@ -4,13 +4,10 @@ FUSION_COMMON := fusion-common
 FUSION_AGENT := fusion-agent
 FUSION_MANAGER := fusion-manager
 NATIVEEDGE_SDK := cloudify-utilities-plugins-sdk
+INCUBATOR_DOMAIN := github.com/cloudify-incubator
 BRANCH := master
 SHELL := /bin/bash
-ifneq ($(GH_USER),)
-	DOMAIN=${GH_USER}:${GITHUB_PASSWORD}@eos2git.cec.lab.emc.com/ISG-Edge
-else
-	DOMAIN=${GH_TOKEN}@github.com/fusion-e
-endif
+DOMAIN=${GH_TOKEN}@github.com/fusion-e
 
 default:
 	make download_from_git
@@ -59,7 +56,7 @@ download_nativeedge_sdk:
 ifneq ($(wildcard ${HOME}/${NATIVEEDGE_SDK}*),)
 	@echo "Found ${HOME}/${NATIVEEDGE_SDK}."
 else
-	git clone --depth 1 https://github.com/cloudify-incubator/${NATIVEEDGE_SDK}.git ${HOME}/${NATIVEEDGE_SDK} -b fusion && cd ${HOME}/${NATIVEEDGE_SDK} && cd
+	git clone --depth 1 https://${INCUBATOR_DOMAIN}/${NATIVEEDGE_SDK}.git ${HOME}/${NATIVEEDGE_SDK} -b master && cd ${HOME}/${NATIVEEDGE_SDK} && cd
 endif
 
 cleanup:
@@ -68,6 +65,8 @@ cleanup:
 
 run_tests:
 	@echo "Starting executing the tests."
+	git submodule init
+	git submodule update --remote --recursive | true
 	HOME=${HOME} VIRTUAL_ENV=${HOME}/.pyenv/${VENVS} tox
 
 clrf:

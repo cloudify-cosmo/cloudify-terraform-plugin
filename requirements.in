@@ -2,4 +2,4 @@
 -e ${HOME}/fusion-manager/mgmtworker
 -e ${HOME}/fusion-agent
 -e ${HOME}/cloudify-utilities-plugins-sdk
-cryptography>=41.0.5
+cryptography>=42.0.5
