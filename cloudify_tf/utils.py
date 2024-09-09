@@ -1,17 +1,4 @@
-########
-# Copyright (c) 2018-2020 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright © 2024 Dell Inc. or its subsidiaries. All Rights Reserved.
 
 import os
 import sys
@@ -24,7 +11,6 @@ import filecmp
 import tempfile
 
 import requests
-import threading
 from io import BytesIO
 from copy import deepcopy
 from textwrap import indent
@@ -32,36 +18,67 @@ from itertools import islice
 from contextlib import contextmanager
 
 from pathlib import Path
-from cloudify import ctx
-from cloudify.exceptions import NonRecoverableError, RecoverableError
-from cloudify.utils import exception_to_error_cause
-from cloudify_common_sdk.hcl import (
-    convert_json_hcl,
-    extract_hcl_from_dict,
-    remove_quotes_from_vars,
-)
-from cloudify_common_sdk.utils import (
-    v1_gteq_v2,
-    get_ctx_node,
-    download_file,
-    copy_directory,
-    CommonSDKSecret,
-    get_ctx_instance,
-    find_rel_by_type,
-    with_rest_client,
-    get_cloudify_version,
-    get_node_instance_dir,
-    unzip_and_set_permissions,
-    resolve_intrinsic_functions
-)
-from cloudify_common_sdk.resource_downloader import unzip_archive
-from cloudify_common_sdk.resource_downloader import untar_archive
-from cloudify_common_sdk.resource_downloader import get_shared_resource
-from cloudify_common_sdk.resource_downloader import TAR_FILE_EXTENSTIONS
-from cloudify_common_sdk.secure_property_management import (
-    store_property,
-    get_stored_property)
 
+try:
+    from cloudify import ctx
+    from cloudify.exceptions import NonRecoverableError, RecoverableError
+    from cloudify.utils import exception_to_error_cause
+    from cloudify_common_sdk.hcl import (
+        convert_json_hcl,
+        extract_hcl_from_dict,
+        remove_quotes_from_vars,
+    )
+    from cloudify_common_sdk.utils import (
+        v1_gteq_v2,
+        get_ctx_node,
+        download_file,
+        copy_directory,
+        CommonSDKSecret,
+        get_ctx_instance,
+        find_rel_by_type,
+        with_rest_client,
+        get_ne_version,
+        get_node_instance_dir,
+        unzip_and_set_permissions,
+        resolve_intrinsic_functions
+    )
+    from cloudify_common_sdk.resource_downloader import unzip_archive
+    from cloudify_common_sdk.resource_downloader import untar_archive
+    from cloudify_common_sdk.resource_downloader import get_shared_resource
+    from cloudify_common_sdk.resource_downloader import TAR_FILE_EXTENSTIONS
+    from cloudify_common_sdk.secure_property_management import (
+        store_property,
+        get_stored_property)
+except ImportError:
+    from cloudify import ctx
+    from cloudify.exceptions import NonRecoverableError, RecoverableError
+    from cloudify.utils import exception_to_error_cause
+    from cloudify_common_sdk.hcl import (
+        convert_json_hcl,
+        extract_hcl_from_dict,
+        remove_quotes_from_vars,
+    )
+    from cloudify_common_sdk.utils import (
+        v1_gteq_v2,
+        get_ctx_node,
+        download_file,
+        copy_directory,
+        CommonSDKSecret,
+        get_ctx_instance,
+        find_rel_by_type,
+        with_rest_client,
+        get_cloudify_version as get_ne_version,
+        get_node_instance_dir,
+        unzip_and_set_permissions,
+        resolve_intrinsic_functions
+    )
+    from cloudify_common_sdk.resource_downloader import unzip_archive
+    from cloudify_common_sdk.resource_downloader import untar_archive
+    from cloudify_common_sdk.resource_downloader import get_shared_resource
+    from cloudify_common_sdk.resource_downloader import TAR_FILE_EXTENSTIONS
+    from cloudify_common_sdk.secure_property_management import (
+        store_property,
+        get_stored_property)
 
 try:
     from cloudify.constants import RELATIONSHIP_INSTANCE, NODE_INSTANCE
@@ -69,14 +86,15 @@ except ImportError:
     NODE_INSTANCE = 'node-instance'
     RELATIONSHIP_INSTANCE = 'relationship-instance'
 
-from .constants import (
+from cloudify_tf import (REL1, REL2)
+from cloudify_tf.constants import (
     NAME,
     STATE,
     DRIFTS,
     IS_DRIFTED,
     TERRAFORM_STATE_FILE
 )
-from ._compat import text_type, StringIO, mkdir_p
+from cloudify_tf._compat import text_type, StringIO, mkdir_p
 
 
 def convert_secrets(data):
@@ -103,13 +121,13 @@ def exclude_file(dirname, filename, excluded_files):
     and also crashes the manager.
     """
     rel_path = os.path.join(dirname, filename)
+
     for f in excluded_files:
         if not f:
             continue
-        elif os.path.isfile(f) and rel_path == f:
-            return True
-        elif os.path.isdir(f) and f in rel_path:
-            return True
+        elif os.path.isfile(f):
+            if rel_path == f or f in rel_path:
+                return True
     return False
 
 
@@ -208,7 +226,8 @@ def _unzip_archive(archive_path, target_directory, source_path=None, **_):
 
 def clean_strings(string):
     if isinstance(string, text_type):
-        return string.encode('utf-8').rstrip("'").lstrip("'")
+        cleaned = string.rstrip("'").lstrip("'")
+        return cleaned.encode('utf-8')
     return string
 
 
@@ -269,8 +288,6 @@ def is_using_existing(target=True):
 def get_binary_location_from_rel():
     candidate_b = get_executable_path()
     if candidate_b and os.path.isfile(candidate_b):
-        ctx.logger.debug(
-            'Executable path from node {}'.format(candidate_b))
         return candidate_b
     tf_rel = find_terraform_node_from_rel()
     if tf_rel:
@@ -278,9 +295,12 @@ def get_binary_location_from_rel():
             'terraform_config', {})
         candidate_a = terraform_config.get('executable_path')
         if candidate_a and os.path.isfile(candidate_a):
-            ctx.logger.debug(
-                'Executable path from rel {}'.format(candidate_a))
             return candidate_a
+        elif not terraform_config:
+            candidate_b = tf_rel.target.instance.runtime_properties.get(
+                'executable_path')
+            if candidate_b and os.path.isfile(candidate_b):
+                return candidate_b
     raise NonRecoverableError(
         "Terraform's executable not found from relationship "
         "'cloudify.terraform.relationships.run_on_host' to type "
@@ -290,8 +310,10 @@ def get_binary_location_from_rel():
 
 
 def find_terraform_node_from_rel():
-    return find_rel_by_type(
-        ctx.instance, 'cloudify.terraform.relationships.run_on_host')
+    rel_2_node = find_rel_by_type(ctx.instance, REL2)
+    if rel_2_node:
+        return rel_2_node
+    return find_rel_by_type(ctx.instance, REL1)
 
 
 def update_resource_config(new_values, target=False):
@@ -365,7 +387,7 @@ def update_terraform_source_material(new_source, target=False):
 
     # By getting here we will have extracted source
     # Zip the file to store in runtime
-    if not v1_gteq_v2(get_cloudify_version(), "6.0.0"):
+    if not v1_gteq_v2(get_ne_version(), '6.0.0'):
         terraform_source_zip = _zip_archive(source_tmp_path)
         bytes_source = _file_to_base64(terraform_source_zip)
         os.remove(terraform_source_zip)
@@ -441,8 +463,8 @@ def get_opa_bundles(target=False):
         # directory structure
         if os.path.isdir(bundle_tmp_path):
             policy_dest_path = os.path.join(node_instance_dir, bundle['name'])
-            ctx.logger.debug("Moving OPA bundle {} to {}"
-                             .format(bundle['name'], policy_dest_path))
+            ctx.logger.info("Moving OPA bundle {} to {}"
+                            .format(bundle['name'], policy_dest_path))
             mkdir_p(policy_dest_path)
             copy_directory(bundle_tmp_path, policy_dest_path)
 
@@ -492,6 +514,7 @@ def get_executable_path(target=False):
         node = get_ctx_node(target=target)
         terraform_config = node.properties.get('terraform_config', {})
         executable_path = terraform_config.get('executable_path')
+        ctx.logger.info(f'terraform_config: {terraform_config}.')
     if not initial_executable_path:
         instance.runtime_properties['executable_path'] = executable_path
     return executable_path
@@ -623,7 +646,7 @@ def handle_plugins(plugins, plugins_dir, installation_dir):
                 delete=False,
                 dir=installation_dir) as plugin_zip:
             plugin_zip.close()
-            ctx.logger.debug('Downloading Terraform plugin: {url}'.format(
+            ctx.logger.info('Downloading Terraform plugin: {url}'.format(
                 url=plugin_url))
             download_file(plugin_zip.name, plugin_url)
             unzip_path = os.path.join(plugins_dir, plugin_name)
@@ -715,9 +738,10 @@ def _yield_terraform_source(material, source_path=None):
         ctx.logger.error(str(cause))
         raise e
     finally:
-        if v1_gteq_v2(get_cloudify_version(), "6.0.0"):
-            ctx.logger.debug('Not storing zip in runtime properties in '
-                             'Cloudify 6.0.0 and greater')
+        if v1_gteq_v2(get_ne_version(), "6.0.0"):
+            ctx.logger.info(
+                'Not storing zip in runtime properties in '
+                'cloudify 6.0.0 and greater')
         else:
             store_binary_material(module_root)
     ctx.instance.runtime_properties['previous_tf_state_file'] = \
@@ -939,6 +963,7 @@ def refresh_resources_drifts_properties(plan_json):
             resource_changes.extend(foo.get('resource_changes', []))
     else:
         resource_changes = plan_json.get('resource_changes', [])
+    ctx.logger.info(f"We got these resource changes: {resource_changes}")
     for resource_change in resource_changes:
         change = resource_change.get('change', {})
         if change['actions'] not in [['no-op'], ['read']]:
@@ -959,7 +984,7 @@ def is_url(string):
 
 
 def handle_previous_source_format(source):
-    ctx.logger.info('Source: {}'.format(source))
+    ctx.logger.debug('Source: {}'.format(source))
     if isinstance(source, dict):
         return source
     elif isinstance(source, str) and source.startswith('/'):
@@ -972,51 +997,6 @@ def handle_previous_source_format(source):
         if is_url(source):
             return {'location': source}
     return source
-
-
-# Stolen from the script plugin, until this class
-# moves to a utils module in cloudify-common.
-class OutputConsumer(object):
-    def __init__(self, out):
-        self.out = out
-        self.consumer = threading.Thread(target=self.consume_output)
-        self.consumer.daemon = True
-
-    def consume_output(self):
-        for line in self.out:
-            self.handle_line(line)
-        self.out.close()
-
-    def handle_line(self, line):
-        raise NotImplementedError("Must be implemented by subclass")
-
-    def join(self):
-        self.consumer.join()
-
-
-class LoggingOutputConsumer(OutputConsumer):
-    def __init__(self, out, logger, prefix):
-        OutputConsumer.__init__(self, out)
-        self.logger = logger
-        self.prefix = prefix
-        self.consumer.start()
-
-    def handle_line(self, line):
-        self.logger.info('{0}{1}'.format(text_type(self.prefix),
-                                         line.decode('utf-8').rstrip('\n')))
-
-
-class CapturingOutputConsumer(OutputConsumer):
-    def __init__(self, out):
-        OutputConsumer.__init__(self, out)
-        self.buffer = StringIO()
-        self.consumer.start()
-
-    def handle_line(self, line):
-        self.buffer.write(line.decode('utf-8'))
-
-    def get_buffer(self):
-        return self.buffer
 
 
 def tree(dir_path, level=-1, limit_to_directories=False, length_limit=1000000):
@@ -1089,7 +1069,9 @@ def resolve_dict_intrinsic_vals(dict_val, dep_id):
 
 
 def first_merge_in_second(new, original):
-    if new and original:
+    if not isinstance(new, dict) or not isinstance(original, dict):
+        raise TypeError("Both arguments must be dictionaries")
+    if new:
         for key, value in new.items():
             original[key] = value
     return original

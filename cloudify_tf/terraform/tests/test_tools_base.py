@@ -1,33 +1,17 @@
-########
-########
-# Copyright (c) 2018-2022 Cloudify Platform Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright © 2024 Dell Inc. or its subsidiaries. All Rights Reserved.
 
 import os
 import shutil
 
-from pytest import fixture
 from mock import MagicMock, patch, call
 from tempfile import mkdtemp, NamedTemporaryFile
 
 from cloudify.state import current_ctx
 from cloudify.mocks import MockCloudifyContext
 
-from .. import tools_base
+from cloudify_tf.terraform import tools_base
 
 
-@fixture
 def get_tf_tools_params():
     info_logger = MagicMock()
     error_logger = MagicMock()
@@ -42,8 +26,8 @@ def get_tf_tools_params():
     return logger_mock, params, info_logger, error_logger
 
 
-def test_logger(get_tf_tools_params):
-    args, kwargs, info, error = get_tf_tools_params
+def test_logger():
+    args, kwargs, info, error = get_tf_tools_params()
     tool = tools_base.TFTool(*args, **kwargs)
     tool.tool_name = 'test_logger'
 
@@ -55,8 +39,8 @@ def test_logger(get_tf_tools_params):
     assert info.call_count == 1
 
 
-def test_logger_sanitizing(get_tf_tools_params):
-    args, kwargs, info, error = get_tf_tools_params
+def test_logger_sanitizing():
+    args, kwargs, info, error = get_tf_tools_params()
     tool = tools_base.TFTool(*args, **kwargs)
     tool.tool_name = 'test_logger_sanitizing'
     tool.forbidden_substrings = ['taco', 'wick']
@@ -70,16 +54,16 @@ def test_logger_sanitizing(get_tf_tools_params):
     assert info.call_count == 1
 
 
-def test_format_log(get_tf_tools_params):
-    args, kwargs, info, error = get_tf_tools_params
+def test_format_log():
+    args, kwargs, info, error = get_tf_tools_params()
     tool = tools_base.TFTool(*args, **kwargs)
     tool.tool_name = 'test_format_log'
     assert tool.format_log('foo') == 'test_format_log: foo'
 
 
 @patch('cloudify_common_sdk.cli_tool_base.sdk_utils')
-def test_properties(sdk_utils_mock, get_tf_tools_params):
-    args, kwargs, info, error = get_tf_tools_params
+def test_properties(sdk_utils_mock):
+    args, kwargs, info, error = get_tf_tools_params()
     sdk_utils_mock.get_deployment_dir.return_value = '/foo'
     tool = tools_base.TFTool(*args, **kwargs)
     assert tool.deployment_directory == '/foo'
@@ -87,8 +71,8 @@ def test_properties(sdk_utils_mock, get_tf_tools_params):
         kwargs['node_instance_name'])
 
 
-def test_get_tf_tool_config(get_tf_tools_params):
-    args, kwargs, info, error = get_tf_tools_params
+def test_get_tf_tool_config():
+    args, kwargs, info, error = get_tf_tools_params()
     tool = tools_base.TFTool(*args, **kwargs)
     tool.tool_name = 'test_get_tf_tool_config'
     test_node_props = {
@@ -109,8 +93,8 @@ def test_get_tf_tool_config(get_tf_tools_params):
     assert resource_config == test_node_props['a']
 
 
-def test_format_string_flag(get_tf_tools_params):
-    args, kwargs, info, error = get_tf_tools_params
+def test_format_string_flag():
+    args, kwargs, info, error = get_tf_tools_params()
     tool = tools_base.TFTool(*args, **kwargs)
     tool.tool_name = 'test_format_string_flag'
 
@@ -151,8 +135,8 @@ def test_format_string_flag(get_tf_tools_params):
     assert result == ['--foo', '--bar=baz']
 
 
-def test_format_dict_flag(get_tf_tools_params):
-    args, kwargs, info, error = get_tf_tools_params
+def test_format_dict_flag():
+    args, kwargs, info, error = get_tf_tools_params()
     tool = tools_base.TFTool(*args, **kwargs)
     tool.tool_name = 'test_format_dict_flag'
 
@@ -177,8 +161,8 @@ def test_format_dict_flag(get_tf_tools_params):
     assert result == ['--foo', '--bar=baz']
 
 
-def test_download_file(get_tf_tools_params):
-    args, kwargs, info, error = get_tf_tools_params
+def test_download_file():
+    args, kwargs, info, error = get_tf_tools_params()
     ctx = MockCloudifyContext(
         'test',
         deployment_id='deployment', tenant={'name': 'foo'},
@@ -208,8 +192,8 @@ def test_download_file(get_tf_tools_params):
             shutil.rmtree(test_node_inst_dir)
 
 
-def test_download_archive(get_tf_tools_params):
-    args, kwargs, info, error = get_tf_tools_params
+def test_download_archive():
+    args, kwargs, info, error = get_tf_tools_params()
     ctx = MockCloudifyContext(
         'test',
         deployment_id='deployment', tenant={'name': 'foo'},

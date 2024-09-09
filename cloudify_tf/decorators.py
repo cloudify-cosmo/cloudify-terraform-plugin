@@ -1,10 +1,14 @@
+# Copyright © 2024 Dell Inc. or its subsidiaries. All Rights Reserved.
+
 from functools import wraps
 
-from .terraform import Terraform
-from .utils import (is_using_existing,
-                    get_terraform_source)
+from cloudify_tf import CREATE_OP
 
-CREATE_OP = 'cloudify.interfaces.lifecycle.create'
+from cloudify_tf.terraform import Terraform
+from cloudify_tf.utils import (
+    is_using_existing,
+    get_terraform_source
+)
 
 
 def with_terraform(func):
@@ -42,20 +46,21 @@ def with_terraform(func):
                 'process. If only the cloudify.nodes.terraform.Module is '
                 'changed, then the Terraform binary may not be present in '
                 'the manager filesystem. This will result in corruption of '
-                'the Cloudify deployment. Create a new deployment with the '
+                'the cloudify deployment. Create a new deployment with the '
                 'cloudify.nodes.terraform configured for local binary use. '
                 'You can do this by setting '
                 'terraform_config.use_external_resource to True, and '
                 'terraform_config.executable_path to the path of an '
-                'existing Terraform binary on the Cloudify manager file '
+                'existing Terraform binary on the cloudify manager file '
                 'system. If necessary, contact your administrator about '
-                'uploading Terraform binaries to the Cloudify manager.')
+                'uploading Terraform binaries to the cloudify manager.')
             return
         with get_terraform_source() as terraform_source:
-            ctx.logger.debug('Terraform source {}'.format(terraform_source))
-            tf = Terraform.from_ctx(terraform_source=terraform_source,
-                                    skip_tf=ctx.operation.name == CREATE_OP,
-                                    **kwargs)
+            ctx.logger.info('Terraform source {}'.format(terraform_source))
+            tf = Terraform.from_ctx(
+                terraform_source=terraform_source,
+                skip_tf=ctx.operation.name == CREATE_OP,
+                **kwargs)
             kwargs['tf'] = tf
             return func(*args, **kwargs)
     return f

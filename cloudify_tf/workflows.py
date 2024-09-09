@@ -1,28 +1,18 @@
-########
-# Copyright (c) 2018-2020 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright © 2024 Dell Inc. or its subsidiaries. All Rights Reserved.
 
-from cloudify.exceptions import NonRecoverableError
+from cloudify_tf import (
+    REL1,
+    REL2,
+    CREATE,
+    DELETE,
+    FATAL_ERR,
+    BINARY_TYPE,
+    MODULE_TYPE,
+    PRECONFIGURE,
+)
 
 HIERARCHY = 'type_hierarchy'
-TF_TYPE = 'cloudify.nodes.terraform'
 NOT_STARTED = ['uninitialized', 'deleted']
-CREATE = 'cloudify.interfaces.lifecycle.create'
-DELETE = 'cloudify.interfaces.lifecycle.delete'
-REL1 = 'cloudify.terraform.relationships.run_on_host'
-REL2 = 'cloudify.relationships.terraform.run_on_host'
-PRECONFIGURE = 'cloudify.interfaces.relationship_lifecycle.preconfigure'
 
 
 def _terraform_operation(ctx,
@@ -36,15 +26,15 @@ def _terraform_operation(ctx,
 
     graph = ctx.graph_mode()
     sequence = graph.sequence()
-    # Iterate over all node instances of type "cloudify.nodes.terraform.Module"
+    # Iterate over all node instances of type
+    # "cloudify.nodes.terraform.Module"
     # and refresh states.
     for node_instance in ctx.node_instances:
         if node_ids and (node_instance.node.id not in node_ids):
             continue
         if node_instance_ids and (node_instance.id not in node_instance_ids):
             continue
-        if 'cloudify.nodes.terraform.Module' in \
-                node_instance.node.type_hierarchy:
+        if MODULE_TYPE in node_instance.node.type_hierarchy:
             ctx.logger.info("Adding node instance: %s", node_instance.id)
             sequence.add(
                 node_instance.execute_operation(
@@ -150,10 +140,10 @@ def migrate_state(ctx, node_ids=None, node_instance_ids=None, **kwargs):
     graph = ctx.graph_mode()
 
     if not kwargs.get('backend'):
-        raise NonRecoverableError('No new backend was provided.')
+        raise FATAL_ERR('No new backend was provided.')
 
     if node_ids and node_instance_ids:
-        raise NonRecoverableError(
+        raise FATAL_ERR(
             'The parameters node_ids and node_instance_ids are '
             'mutually exclusive. '
             '{} and {} were provided.'.format(node_ids, node_instance_ids)
@@ -173,8 +163,8 @@ def terraform_plan(ctx,
                    node_instance_ids=None,
                    **kwargs):
     """Execute the terraform plan on nodes or node instances.
-    :param ctx: The Cloudify Workflow Context from Workflow.
-    :type ctx: CloudifyContext
+    :param ctx: The cloudify Workflow Context from Workflow.
+    :type ctx: cloudifyContext
     :param node_ids: A list of node IDs.
     :type node_ids: list
     :param node_instance_ids: A list of node IDs.
@@ -188,14 +178,14 @@ def terraform_plan(ctx,
     sequence = graph.sequence()
 
     if node_ids and node_instance_ids:
-        raise NonRecoverableError(
+        raise FATAL_ERR(
             'The parameters node_ids and node_instance_ids are '
             'mutually exclusive. '
             '{} and {} were provided.'.format(node_ids, node_instance_ids)
         )
     elif node_ids or (not node_ids and not node_instance_ids):
         for node in ctx.nodes:
-            if 'cloudify.nodes.terraform.Module' not in node.type_hierarchy:
+            if MODULE_TYPE not in node.type_hierarchy:
                 continue
             if not node_ids or node.id in node_ids:
                 for instance in node.instances:
@@ -223,10 +213,10 @@ def _plan_module_instance(ctx, node, instance, sequence, kwargs):
     """ Create a task sequence that will execute a terraform plan on
     a list of nodes.
 
-    :param ctx: CloudifyWorkflowContext
-    :type ctx: CloudifyWorkflowContext
-    :param node: CloudifyWorkflowNode
-    :param instance: CloudifyWorkflowNodeInstance
+    :param ctx: cloudifyWorkflowContext
+    :type ctx: cloudifyWorkflowContext
+    :param node: cloudifyWorkflowNode
+    :param instance: cloudifyWorkflowNodeInstance
     :param sequence: TaskSequence
     :param kwargs:
     :return: None
@@ -264,21 +254,21 @@ def update_terraform_binary(ctx,
                             installation_source=None,
                             **kwargs):
     if not installation_source:
-        raise NonRecoverableError(
+        raise FATAL_ERR(
             'You must provided a new URL to Terraform installation source.')
     kwargs['installation_source'] = installation_source
     graph = ctx.graph_mode()
     sequence = graph.sequence()
     instance_ids = []
     if node_ids and node_instance_ids:
-        raise NonRecoverableError(
+        raise FATAL_ERR(
             'The parameters node_ids and node_instance_ids are '
             'mutually exclusive. '
             '{} and {} were provided.'.format(node_ids, node_instance_ids)
         )
     elif node_ids or (not node_ids and not node_instance_ids):
         for node in ctx.nodes:
-            if 'cloudify.nodes.terraform' not in node.type_hierarchy:
+            if BINARY_TYPE not in node.type_hierarchy:
                 continue
             if not node_ids or node.id in node_ids:
                 for instance in node.instances:
@@ -292,7 +282,7 @@ def update_terraform_binary(ctx,
                     instance_ids.append(instance.id)
                 _update_terraform_binary(instance, sequence, kwargs)
     for node in ctx.nodes:
-        if 'cloudify.nodes.terraform.Module' not in node.type_hierarchy:
+        if MODULE_TYPE not in node.type_hierarchy:
             continue
         for instance in node.instances:
             for relationship in instance.relationships:

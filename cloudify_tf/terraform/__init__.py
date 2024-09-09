@@ -1,43 +1,43 @@
-########
-# Copyright (c) 2018-2020 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright © 2024 Dell Inc. or its subsidiaries. All Rights Reserved.
 
 import os
 import re
 import json
 import tempfile
+from contextlib import contextmanager
 from distutils.version import LooseVersion as parse_version
 
-from .tfsec import TFSec
-from .tflint import TFLint
-from .terratag import Terratag
-from .infracost import Infracost
-from contextlib import contextmanager
-from cloudify import exceptions as cfy_exc
-from cloudify_common_sdk.cli_tool_base import CliTool
-from cloudify_common_sdk.secure_property_management import get_stored_property
-from cloudify_common_sdk.utils import (
-    delete_debug,
-    run_subprocess,
-    update_dict_values
-)
+from cloudify_tf.terraform.tfsec import TFSec
+from cloudify_tf.terraform.tflint import TFLint
+from cloudify_tf.terraform.terratag import Terratag
+from cloudify_tf.terraform.infracost import Infracost
 from script_runner.tasks import ProcessException
 
-from .. import utils
+try:
+    from nativeedge import exceptions as ne_exc
+    from nativeedge_common_sdk.cli_tool_base import CliTool
+    from nativeedge_common_sdk.secure_property_management import \
+        get_stored_property
+    from nativeedge_common_sdk.utils import (
+        delete_debug,
+        run_subprocess,
+        update_dict_values
+    )
+except ImportError:
+    from cloudify import exceptions as ne_exc
+    from cloudify_common_sdk.cli_tool_base import CliTool
+    from cloudify_common_sdk.secure_property_management import \
+        get_stored_property
+    from cloudify_common_sdk.utils import (
+        delete_debug,
+        run_subprocess,
+        update_dict_values
+    )
+
+from cloudify_tf import utils
 
 
-CREATE_OP = 'cloudify.interfaces.lifecycle.create'
+CREATE_OP = 'interfaces.lifecycle.create'
 
 
 class Terraform(CliTool):
@@ -277,12 +277,12 @@ class Terraform(CliTool):
                 return_output=return_output)
         except ProcessException as e:
             if e.exit_code == 2 and \
-                'panic: runtime error: invalid memory address ' \
-                'or nil pointer dereference' in e.stderr:
-            raise cfy_exc.OperationRetry(
-                f'Failed to call: {e.command}. '
-                f'A temporary error was raised: {e.stderr}.')
-
+                    'panic: runtime error: invalid memory address ' \
+                    'or nil pointer dereference' in e.stderr:
+                raise ne_exc.OperationRetry(
+                    f'Failed to call: {e.command}. '
+                    f'A temporary error was raised: {e.stderr}.')
+            raise e
 
     def _tf_command(self, args):
         cmd = [self.binary_path]
@@ -348,7 +348,7 @@ class Terraform(CliTool):
     def read_version_from_text(text):
         try:
             return re.search(
-                'Terraform\\sv(.*)\\n', text.decode('utf-8')).group(1)
+               r'Terraform\s+v(\d+\.\d+\.\d+)', text.decode('utf-8')).group(1)
         except AttributeError:
             return '0.0.0'
 
@@ -621,11 +621,13 @@ class Terraform(CliTool):
         try:
             executable_path = utils.get_executable_path() or \
                               utils.get_binary_location_from_rel()
-        except cfy_exc.NonRecoverableError:
+        except ne_exc.NonRecoverableError:
             if skip_tf:
                 executable_path = None
             else:
                 raise
+        if not executable_path:
+            raise ne_exc.NonRecoverableError('No executable was discovered.')
         plugins_dir = utils.get_plugins_dir()
         resource_config = utils.get_resource_config()
         provider_upgrade = utils.get_provider_upgrade()
@@ -768,7 +770,8 @@ def setup_config_tf(ctx,
                     terratag_config=None,
                     infracost_config=None,
                     **_):
-    if ctx.operation.name != CREATE_OP:
+
+    if ctx.operation.name.endswith(CREATE_OP):
         if tf.terraform_outdated:
             ctx.logger.info(
                 'Your terraform version {} is outdated. '

@@ -1,43 +1,41 @@
-########
-# Copyright (c) 2018-2020 GigaSpaces Technologies Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright © 2024 Dell Inc. or its subsidiaries. All Rights Reserved.
 
 import os
 import sys
 
 from deepdiff import DeepDiff
-from cloudify.decorators import operation
-from cloudify import ctx as ctx_from_imports
-from cloudify.utils import exception_to_error_cause
-from cloudify.exceptions import NonRecoverableError, RecoverableError
-from cloudify_common_sdk.utils import (
-    install_binary,
-    update_dict_values,
-    get_node_instance_dir)
 
-from . import utils
-from ._compat import mkdir_p
-from .constants import IS_DRIFTED
-from .decorators import (
+try:
+    from cloudify.decorators import operation
+    from cloudify import ctx as ctx_from_imports
+    from cloudify.utils import exception_to_error_cause
+    from cloudify.exceptions import NonRecoverableError, RecoverableError
+    from cloudify_common_sdk.utils import (
+        install_binary,
+        update_dict_values,
+        get_node_instance_dir)
+except ImportError:
+    from cloudify.decorators import operation
+    from cloudify import ctx as ctx_from_imports
+    from cloudify.utils import exception_to_error_cause
+    from cloudify.exceptions import NonRecoverableError, RecoverableError
+    from cloudify_common_sdk.utils import (
+        install_binary,
+        update_dict_values,
+        get_node_instance_dir)
+
+from cloudify_tf import utils
+from cloudify_tf._compat import mkdir_p
+from cloudify_tf.constants import IS_DRIFTED
+from cloudify_tf.decorators import (
     with_terraform,
     skip_if_existing)
-from .terraform.opa import Opa
-from .terraform.tfsec import TFSec
-from .terraform.tflint import TFLint
-from .terraform.terratag import Terratag
-from .terraform.infracost import Infracost
-from .terraform.tools_base import TFToolException
+from cloudify_tf.terraform.opa import Opa
+from cloudify_tf.terraform.tfsec import TFSec
+from cloudify_tf.terraform.tflint import TFLint
+from cloudify_tf.terraform.terratag import Terratag
+from cloudify_tf.terraform.infracost import Infracost
+from cloudify_tf.terraform.tools_base import TFToolException
 
 
 @operation
@@ -201,8 +199,7 @@ def compare_plan_results(new_plan, old_plan):
 
     diff = DeepDiff(left, right)
     if diff:
-        ctx_from_imports.logger.info(
-            'Old plan and new plan diff {}'.format(diff))
+        ctx_from_imports.logger.info(f'Old plan and new plan diff {diff}.')
         raise FailedPlanValidation(
             'The new plan differs from the old plan. '
             'Please Rerun plan workflow before executing apply worfklow.')
@@ -248,11 +245,11 @@ def _plan(tf):
     except Exception as ex:
         _, _, tb = sys.exc_info()
         raise NonRecoverableError(
-            "Failed executing terraform plan. "
-            "If you ran plan prior to installation, verify that the "
-            "cloudify.nodes.terraform.Module node template is not dependent "
-            "on any uninstalled nodes. Plan is intended for use with "
-            "deployment update.",
+            'Failed executing terraform plan. '
+            'If you ran plan prior to installation, '
+            'verify that the cloudify.nodes.terraform.Module '
+            'node template is not dependent on any uninstalled nodes. '
+            'Plan is intended for use with deployment update.',
             causes=[exception_to_error_cause(ex, tb)])
 
 
@@ -320,13 +317,13 @@ def check_status(ctx, tf, **_):
     status_problems = tf.plan_and_show_state()
     if status_problems:
         ctx.abort_operation(
-            'The cloudify.nodes.terraform.Module node template {} '
-            'has status problems with these nodes: {}'.format(
-                ctx.instance.id, status_problems))
+            f'The {ctx.node.type} node template {ctx.instance.id} '
+            f'has status problems with these nodes: {status_problems}.'
+        )
     else:
         ctx.returns(
-            'The cloudify.nodes.terraform.Module node template {} '
-            'has no status problems.'.format(ctx.instance.id))
+            f'The {ctx.node.type} node template {ctx.instance.id} '
+            'has no status problems.')
 
 
 @operation
@@ -344,12 +341,12 @@ def check_drift(ctx, tf, **_):
     _state_pull(tf, update_runtime_props=False)
     if ctx.instance.runtime_properties.get(IS_DRIFTED, False):
         ctx.abort_operation(
-            'The cloudify.nodes.terraform.Module node template {} '
-            'has drifts.'.format(ctx.instance.id))
+            f'The {ctx.node.type} node template '
+            f'{ctx.instance.id} has drifts.')
     else:
         ctx.logger.error(
-            'The cloudify.nodes.terraform.Module node instance {} '
-            'has no drifts.'.format(ctx.instance.id))
+            f'The {ctx.node.type} node instance '
+            f'{ctx.instance.id} has no drifts.')
 
 
 @operation
@@ -358,10 +355,10 @@ def state_pull(ctx, tf, **_):
     """
     Execute `terraform state pull`.
     """
-    if ctx.operation.name == 'cloudify.interfaces.lifecycle.pull':
+    if 'interfaces.lifecycle.pull' in ctx.operation.name:
         raise NonRecoverableError(
-            'The operation cloudify.interfaces.lifecycle.pull is not a '
-            'valid operation. Please use terraform.pull.')
+            f'The operation {ctx.operation.name} is not a valid operation. '
+            'Please use terraform.pull.')
     _state_pull(tf)
 
 
@@ -392,7 +389,7 @@ def destroy(ctx, tf, **_):
     try:
         _state_pull(tf)
     except Exception as e:
-        ctx.logger.error('State pull after destroy failed: {}'.format(str(e)))
+        ctx.logger.error(f'State pull after destroy failed: {e}')
     for runtime_property in ['terraform_source',
                              'last_source_location',
                              'resource_config']:
@@ -519,14 +516,13 @@ def install(ctx, installation_source=None, **_):
 
     if os.path.isfile(executable_path) and ctx.workflow_id == 'install':
         ctx.logger.info(
-            'Terraform executable already found at {path}; '
-            'skipping installation of executable'.format(
-                path=executable_path))
+            f'Terraform executable already found at {executable_path}; '
+            'skipping installation of executable.')
     else:
-        ctx.logger.warn('You are requesting to write a new file to {loc}. '
-                        'If you do not have sufficient permissions, that '
-                        'installation will fail.'.format(
-                            loc=executable_path))
+        ctx.logger.warn(
+            f'You are requesting to write a new file to {executable_path}. '
+            'If you do not have sufficient permissions, that '
+            'installation will fail.')
         install_binary(
             installation_dir, executable_path, installation_source, 'tf.zip')
 
@@ -546,11 +542,10 @@ def uninstall(ctx, **_):
     if os.path.isfile(exc_path):
         if system_exc:
             ctx.logger.info(
-                'Not removing Terraform installation at {loc} as'
-                'it was provided externally'.format(loc=exc_path))
+                f'Not removing Terraform installation at {exc_path} as'
+                'it was provided externally')
         else:
-            ctx.logger.info('Removing executable: {path}'.format(
-                path=exc_path))
+            ctx.logger.info(f'Removing executable: {exc_path}')
             os.remove(exc_path)
 
     for property_name, property_desc in [
@@ -594,19 +589,18 @@ def set_directory_config(ctx, **_):
         # TODO: Possibly put this in "apply" and remove the relationship in
         # the future.
 
-        ctx.logger.debug('Creating link {src} {dst}'.format(
-            src=deployment_terraform_dir, dst=resource_terraform_dir))
+        ctx.logger.info(
+            f'Creating link {deployment_terraform_dir} '
+            f'{resource_terraform_dir}.')
         try:
             os.symlink(deployment_terraform_dir, resource_terraform_dir)
         except OSError:
-            ctx.logger.warn('Unable to link {src} {dst}'.format(
-                src=deployment_terraform_dir, dst=resource_terraform_dir))
-    ctx.logger.debug("setting executable_path to {path}".format(
-        path=exc_path))
-    ctx.logger.debug("setting plugins_dir to {dir}".format(
-        dir=resource_plugins_dir))
-    ctx.logger.debug("setting storage_path to {dir}".format(
-        dir=resource_storage_dir))
+            ctx.logger.warn(
+                f'Unable to link {deployment_terraform_dir} '
+                f'{resource_terraform_dir}.')
+    ctx.logger.debug(f'setting executable_path to {exc_path}.')
+    ctx.logger.debug(f'setting plugins_dir to {resource_plugins_dir}.')
+    ctx.logger.debug(f'setting storage_path to {resource_storage_dir}')
     ctx.source.instance.runtime_properties['executable_path'] = \
         exc_path
     ctx.source.instance.runtime_properties['plugins_dir'] = \
@@ -633,8 +627,8 @@ def _import_resource(ctx,
 
     if not all([resource_address, resource_id]):
         raise NonRecoverableError(
-            "A new value for the following parameters must be provided:"
-            " resource_address, resource_id.")
+            'A new value for the following parameters must be provided: '
+            'resource_address, resource_id.')
 
     resource_config = utils.get_resource_config()
     if not source:

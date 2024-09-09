@@ -1,28 +1,19 @@
-########
-########
-# Copyright (c) 2018-2022 Cloudify Platform Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright © 2024 Dell Inc. or its subsidiaries. All Rights Reserved.
 
 import re
 import json
 from os import path
 from time import sleep
 
-from cloudify.exceptions import RecoverableError
-from cloudify_common_sdk.utils import install_binary
+from cloudify_tf.terraform.tools_base import TFTool, TFToolException
 
-from .tools_base import TFTool, TFToolException
+try:
+    from nativeedge.exceptions import RecoverableError
+    from nativeedge_common_sdk.utils import install_binary
+except ImportError:
+    from cloudify.exceptions import RecoverableError
+    from cloudify_common_sdk.utils import install_binary
+
 
 SUPPORTED_FLAGS = [
     'dir',  # defaults .. .tf file
@@ -206,7 +197,7 @@ class Terratag(TFTool):
     def from_ctx(_ctx, terratag_config=None):
         terratag_config = terratag_config or get_terratag_config(
             _ctx.node.properties, _ctx.instance.runtime_properties)
-        _ctx.logger.debug('Using terratag_config {}'.format(terratag_config))
+        _ctx.logger.info('Using terratag_config {}'.format(terratag_config))
         return Terratag(
             _ctx.logger,
             _ctx.deployment.id,
