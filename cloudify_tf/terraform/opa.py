@@ -1,3 +1,5 @@
+# Copyright © 2024 Dell Inc. or its subsidiaries. All Rights Reserved.
+
 import json
 import shutil
 from os import path
@@ -5,9 +7,14 @@ from time import sleep
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
 
-from cloudify.exceptions import RecoverableError
-from .tools_base import TFTool, TFToolException
-from cloudify_common_sdk.utils import get_node_instance_dir
+from cloudify_tf.terraform.tools_base import TFTool, TFToolException
+
+try:
+    from nativeedge.exceptions import RecoverableError
+    from nativeedge_common_sdk.utils import get_node_instance_dir
+except ImportError:
+    from cloudify.exceptions import RecoverableError
+    from cloudify_common_sdk.utils import get_node_instance_dir
 
 
 class Opa(TFTool):
@@ -150,7 +157,7 @@ class Opa(TFTool):
     def from_ctx(_ctx, opa_config=None):
         opa_config = opa_config or get_opa_config(
             _ctx.node.properties, _ctx.instance.runtime_properties)
-        _ctx.logger.debug('Using opa_config {}'.format(opa_config))
+        _ctx.logger.info('Using opa_config {}'.format(opa_config))
         return Opa(
             _ctx.logger,
             _ctx.deployment.id,

@@ -1,3 +1,5 @@
+# Copyright © 2024 Dell Inc. or its subsidiaries. All Rights Reserved.
+
 import json
 import yaml
 from os import path, remove
@@ -6,11 +8,15 @@ from pathlib import Path
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
 
-from cloudify.exceptions import RecoverableError
-from cloudify_common_sdk.utils import install_binary
+from cloudify_tf.utils import convert_secrets
+from cloudify_tf.terraform.tools_base import TFTool, TFToolException
 
-from .tools_base import TFTool, TFToolException
-from ..utils import convert_secrets
+try:
+    from nativeedge.exceptions import RecoverableError
+    from nativeedge_common_sdk.utils import install_binary
+except ImportError:
+    from cloudify.exceptions import RecoverableError
+    from cloudify_common_sdk.utils import install_binary
 
 
 class Infracost(TFTool):
@@ -264,8 +270,7 @@ class Infracost(TFTool):
 
 def get_infracost_config(node_props, instance_props):
     infracost_config = instance_props.get('infracost_config', {})
-    if not infracost_config:
-        infracost_config = node_props['infracost_config']
+    infracost_config = node_props.get('infracost_config', {})
     return infracost_config
 
 

@@ -1,26 +1,16 @@
-########
-########
-# Copyright (c) 2018-2022 Cloudify Platform Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright © 2024 Dell Inc. or its subsidiaries. All Rights Reserved.
 
-from os import path, remove
 from time import sleep
+from os import path, remove
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
 
-from cloudify.exceptions import RecoverableError
-from .tools_base import TFTool, TFToolException
+from cloudify_tf.terraform.tools_base import TFTool, TFToolException
+
+try:
+    from nativeedge.exceptions import RecoverableError
+except ImportError:
+    from cloudify.exceptions import RecoverableError
 
 SUPPORTED_CONFIGS = [
     'config',
@@ -193,7 +183,7 @@ class TFLint(TFTool):
     def from_ctx(_ctx, tflint_config=None):
         tflint_config = tflint_config or get_tflint_config(
             _ctx.node.properties, _ctx.instance.runtime_properties)
-        _ctx.logger.debug('Using tflint_config {}'.format(tflint_config))
+        _ctx.logger.info('Using tflint_config {}'.format(tflint_config))
         return TFLint(
             _ctx.logger,
             _ctx.deployment.id,
@@ -282,7 +272,7 @@ class TFLint(TFTool):
 def get_tflint_config(node_props, instance_props):
     tflint_config = instance_props.get('tflint_config', {})
     if not tflint_config:
-        tflint_config = node_props['tflint_config']
+        tflint_config = node_props.get('tflint_config', {})
     return tflint_config
 
 

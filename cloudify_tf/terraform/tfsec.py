@@ -1,3 +1,5 @@
+# Copyright © 2024 Dell Inc. or its subsidiaries. All Rights Reserved.
+
 import json
 import shutil
 from os import path
@@ -5,8 +7,12 @@ from time import sleep
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
 
-from cloudify.exceptions import RecoverableError
-from .tools_base import TFTool, TFToolException
+from cloudify_tf.terraform.tools_base import TFTool, TFToolException
+
+try:
+    from nativeedge.exceptions import RecoverableError
+except ImportError:
+    from cloudify.exceptions import RecoverableError
 
 
 class TFSec(TFTool):
@@ -147,7 +153,7 @@ class TFSec(TFTool):
     def from_ctx(_ctx, tfsec_config=None):
         tfsec_config = tfsec_config or get_tfsec_config(
             _ctx.node.properties, _ctx.instance.runtime_properties)
-        _ctx.logger.debug('Using tfsec_config {}'.format(tfsec_config))
+        _ctx.logger.info('Using tfsec_config {}'.format(tfsec_config))
         return TFSec(
             _ctx.logger,
             _ctx.deployment.id,
@@ -228,7 +234,7 @@ class TFSec(TFTool):
 def get_tfsec_config(node_props, instance_props):
     tfsec_config = instance_props.get('tfsec_config', {})
     if not tfsec_config:
-        tfsec_config = node_props['tfsec_config']
+        tfsec_config = node_props.get('tfsec_config', {})
     return tfsec_config
 
 

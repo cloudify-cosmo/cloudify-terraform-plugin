@@ -1,24 +1,11 @@
-########
-# Copyright (c) 2018-2022 Cloudify Platform Ltd. All rights reserved
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright © 2024 Dell Inc. or its subsidiaries. All Rights Reserved.
+
 import os
 import shutil
-from tempfile import mkdtemp
-from unittest.mock import patch
+import unittest
 
-from mock import MagicMock
-from pytest import fixture
+from tempfile import mkdtemp
+from mock import MagicMock, patch
 
 from cloudify.state import current_ctx
 from cloudify.mocks import MockCloudifyContext
@@ -37,7 +24,6 @@ ctx = MockCloudifyContext(
     )
 
 
-@fixture
 def terratag_params():
     logger_mock = MagicMock()
     params = {
@@ -54,27 +40,27 @@ def terratag_params():
     return params
 
 
-def test_terratag_property_name(terratag_params):
-    terratag_obj = terratag.Terratag(**terratag_params)
+def test_terratag_property_name():
+    terratag_obj = terratag.Terratag(**terratag_params())
     assert terratag_obj.config_property_name == 'terratag_config'
 
 
-def test_installation_source(terratag_params):
-    terratag_obj = terratag.Terratag(**terratag_params)
+def test_installation_source():
+    terratag_obj = terratag.Terratag(**terratag_params())
     assert terratag_obj.installation_source == TERRATAG_URL
 
 
 @patch('cloudify_common_sdk.utils.get_deployment_dir')
-def test_executable_path(get_deployment_dir_sdk, terratag_params):
+def test_executable_path(get_deployment_dir_sdk):
     current_ctx.set(ctx)
     deployment_dir = mkdtemp()
     get_deployment_dir_sdk.return_value = deployment_dir
     expected_path = os.path.join(deployment_dir,
-                                 terratag_params['node_instance_name'],
+                                 terratag_params()['node_instance_name'],
                                  'terratag')
     os.makedirs(os.path.dirname(expected_path))
     try:
-        terratag_obj = terratag.Terratag(**terratag_params)
+        terratag_obj = terratag.Terratag(**terratag_params())
         actual_path = terratag_obj.executable_path
         assert expected_path == actual_path
         assert os.path.isfile(actual_path)
@@ -84,18 +70,122 @@ def test_executable_path(get_deployment_dir_sdk, terratag_params):
 
 
 @patch('cloudify_common_sdk.utils.get_deployment_dir')
-def test_validate(get_deployment_dir_sdk, terratag_params):
+def test_validate(get_deployment_dir_sdk):
     current_ctx.set(ctx)
     deployment_dir = mkdtemp()
     get_deployment_dir_sdk.return_value = deployment_dir
     expected_path = os.path.join(deployment_dir,
-                                 terratag_params['node_instance_name'],
+                                 terratag_params()['node_instance_name'],
                                  'terratag')
     os.makedirs(os.path.dirname(expected_path))
     try:
-        terratag_obj = terratag.Terratag(**terratag_params)
+        terratag_obj = terratag.Terratag(**terratag_params())
         terratag_obj.validate()
     finally:
         shutil.rmtree(deployment_dir)
     assert terratag_obj.tags == {'tag1: value1'}
     assert terratag_obj.flags == ['-verbose=True', '-rename=False']
+
+
+class TestTerratag(unittest.TestCase):
+
+    def setUp(self):
+        self.logger = MagicMock()
+        self.deployment_name = 'test_deployment'
+        self.node_instance_name = 'test_node_instance'
+        self.executable_path = '/path/to/executable'
+        self.config_file = '/path/to/config_file'
+        self.variable_file = '/path/to/variable_file'
+        self.tf_root_module = '/path/to/terraform_root_module'
+        self.env = {'key': 'value'}
+
+        self.terratag = terratag.Terratag(
+            self.logger,
+            self.deployment_name,
+            self.node_instance_name,
+            installation_source='source_url',
+            executable_path='/path/to/executable',
+            tags={'tag': 'test'},
+            flags_override=['--flag'],
+            env={'key': 'value'},
+            enable=True,
+            terraform_executable=None
+            )
+
+    def test_default_values(self):
+        self.assertEqual(self.terratag.installation_source,
+                         'source_url')
+        self.assertEqual(self.terratag.flags, ['-rename=False'])
+        self.assertEqual(self.terratag.env, {'key': 'value'})
+        self.assertEqual(self.terratag.config_property_name,
+                         'terratag_config')
+        self.assertIsNone(self.terratag.terraform_root_module)
+
+    @patch('cloudify_tf.terraform.terratag.Terratag.use_system_terratag')
+    @patch('cloudify_tf.terraform.terratag.Terratag.require_download_terratag')
+    def test_setters(self,
+                     mock_use_system_terratag,
+                     mock_require_download_terratag):
+        mock_use_system_terratag.return_value = False
+        mock_require_download_terratag.return_value = False
+
+        self.terratag.installation_source = 'installation_source_new'
+        self.terratag.terraform_executable = 'terraform_executable_new'
+        self.terratag.executable_path = 'executable_path_new'
+        self.assertEqual(self.terratag.terraform_executable,
+                         'terraform_executable_new')
+        self.assertEqual(self.terratag.installation_source,
+                         'installation_source_new')
+        self.assertEqual(self.terratag.executable_path,
+                         'executable_path_new')
+
+    @patch('cloudify_tf.terraform.terratag.Terratag.use_system_terratag')
+    def test_executable_path(self, mock_use_system_terratag):
+        mock_use_system_terratag.return_value = True
+        result = self.terratag.executable_path
+        self.assertEqual(result, '/path/to/executable')
+
+    @patch('os.path.isfile')
+    def test_require_download_terratag(self, mock_isfile):
+        mock_isfile.return_value = True
+        result = self.terratag.require_download_terratag('/path/to/executable')
+        self.assertFalse(result)
+
+    def test_flags_string(self):
+        result = self.terratag.flags_string
+        self.assertEqual(result, '-rename=False')
+
+    def test_tags(self):
+        self.terratag.tags = {'tag': 'new'}
+        self.assertEqual(self.terratag.tags, {'tag': 'new'})
+
+    def test_tags_string(self):
+        self.terratag.tags_string = {'tags_string': 'new'}
+        self.assertEqual(self.terratag.tags_string, {'tags_string': 'new'})
+
+    def test_env(self):
+        self.terratag.env = {'key': 'new'}
+        self.assertEqual(self.terratag.env, {'key': 'new'})
+
+    def test_terraform_root_module(self):
+        self.terratag.terraform_root_module = 'new/path/terraform_root_module'
+        self.assertEqual(self.terratag.terraform_root_module,
+                         'new/path/terraform_root_module')
+
+    @patch('cloudify_tf.terraform.terratag.Terratag.use_system_terratag')
+    @patch('cloudify_tf.terraform.terratag.Terratag.execute')
+    def test_terratag(self, mock_execute, mock_use_system_terratag):
+        mock_use_system_terratag.return_value = True
+        self.terratag.terratag()
+        mock_execute.assert_called()
+
+    def test_get_terratag_config(self):
+        node_props = {'foo': 'bar'}
+        instance_props = {'terratag_config': {'foo': 'instance_props'}}
+        result = terratag.get_terratag_config(node_props, instance_props)
+        self.assertEqual(result, {'foo': 'instance_props'})
+
+        node_props = {'terratag_config': {'foo': 'node_props'}}
+        instance_props = {}
+        result = terratag.get_terratag_config(node_props, instance_props)
+        self.assertEqual(result, {'foo': 'node_props'})

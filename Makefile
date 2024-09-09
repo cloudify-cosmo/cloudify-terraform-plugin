@@ -1,13 +1,16 @@
-# Makefile for collecting and installing requirements for nativeedge-plugins-sdk.
+# Makefile for collecting and installing requirements for cloudify-plugins-sdk.
 VENVS := $(shell pyenv virtualenvs --skip-aliases --bare | grep 'project\b')
 FUSION_COMMON := fusion-common
 FUSION_AGENT := fusion-agent
 FUSION_MANAGER := fusion-manager
-NATIVEEDGE_SDK := cloudify-utilities-plugins-sdk
-INCUBATOR_DOMAIN := github.com/cloudify-incubator
+cloudify_SDK := cloudify-utilities-plugins-sdk
 BRANCH := master
 SHELL := /bin/bash
-DOMAIN=${GH_TOKEN}@github.com/fusion-e
+ifneq ($(GH_USER),)
+	DOMAIN=${GH_USER}:${GITHUB_PASSWORD}@eos2git.cec.lab.emc.com/ISG-Edge
+else
+	DOMAIN=${GH_TOKEN}@github.com/fusion-e
+endif
 
 default:
 	make download_from_git
@@ -22,7 +25,7 @@ download_from_git:
 	make download_fusion_common
 	make download_fusion_agent
 	make download_fusion_manager
-	make download_nativeedge_sdk
+	make download_cloudify_sdk
 
 setup_local_virtual_env:
 ifneq ($(VENVS),)
@@ -52,11 +55,11 @@ else
 	git clone --depth 1 https://${DOMAIN}/${FUSION_MANAGER}.git ${HOME}/${FUSION_MANAGER} -b ${BRANCH} && cd ${HOME}/${FUSION_MANAGER}/mgmtworker && cd
 endif
 
-download_nativeedge_sdk:
-ifneq ($(wildcard ${HOME}/${NATIVEEDGE_SDK}*),)
-	@echo "Found ${HOME}/${NATIVEEDGE_SDK}."
+download_cloudify_sdk:
+ifneq ($(wildcard ${HOME}/${cloudify_SDK}*),)
+	@echo "Found ${HOME}/${cloudify_SDK}."
 else
-	git clone --depth 1 https://${INCUBATOR_DOMAIN}/${NATIVEEDGE_SDK}.git ${HOME}/${NATIVEEDGE_SDK} -b master && cd ${HOME}/${NATIVEEDGE_SDK} && cd
+	git clone --depth 1 https://${GH_TOKEN}@github.com/cloudify-incubator/${cloudify_SDK}.git ${HOME}/${cloudify_SDK} -b master && cd ${HOME}/${cloudify_SDK} && cd
 endif
 
 cleanup:
@@ -65,8 +68,6 @@ cleanup:
 
 run_tests:
 	@echo "Starting executing the tests."
-	git submodule init
-	git submodule update --remote --recursive | true
 	HOME=${HOME} VIRTUAL_ENV=${HOME}/.pyenv/${VENVS} tox
 
 clrf:
@@ -77,4 +78,4 @@ wheels:
 	@pip wheel ${HOME}/${FUSION_COMMON}/ -w /workspace/build/ --find-links /workspace/build
 	@pip wheel ${HOME}/${FUSION_AGENT}/ -w /workspace/build/ --find-links /workspace/build
 	@pip wheel ${HOME}/${FUSION_MANAGER}/mgmtworker -w /workspace/build/ --find-links /workspace/build
-	@pip wheel ${HOME}/${NATIVEEDGE_SDK} -w /workspace/build/ --find-links /workspace/build
+	@pip wheel ${HOME}/${cloudify_SDK} -w /workspace/build/ --find-links /workspace/build
