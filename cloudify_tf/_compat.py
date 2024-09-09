@@ -1,4 +1,3 @@
-# Copyright © 2024 Dell Inc. or its subsidiaries. All Rights Reserved.
 
 """Python 2 + 3 compatibility utils"""
 # flake8: noqa

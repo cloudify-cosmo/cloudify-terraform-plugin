@@ -1,4 +1,3 @@
-# Copyright © 2024 Dell Inc. or its subsidiaries. All Rights Reserved.
 
 from unittest import TestCase
 from mock import patch, MagicMock

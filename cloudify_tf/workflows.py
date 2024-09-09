@@ -1,4 +1,3 @@
-# Copyright © 2024 Dell Inc. or its subsidiaries. All Rights Reserved.
 
 from cloudify_tf import (
     REL1,

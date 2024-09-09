@@ -1,4 +1,3 @@
-# Copyright © 2024 Dell Inc. or its subsidiaries. All Rights Reserved.
 
 from time import sleep
 from os import path, remove
