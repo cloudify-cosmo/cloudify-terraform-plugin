@@ -1,4 +1,3 @@
-# Copyright © 2024 Dell Inc. or its subsidiaries. All Rights Reserved.
 
 import unittest
 from uuid import uuid1
